@@ -759,13 +759,15 @@ function renderCatalogAccordion(){
   const catKeys = [...Object.keys(CATEGORIES).filter(c=>c!=='other'), 'other'];
   catKeys.forEach(catKey=>{
     const isOther = catKey==='other';
-    const items = isOther ? [] : PRODUCTS.filter(p=>p.cat===catKey);
-    const ownedCount = items.filter(p=>owned.has(p.id)).length;
+    const catalogItems = isOther ? [] : PRODUCTS.filter(p=>p.cat===catKey);
+    const ownedCatalogCount = catalogItems.filter(p=>owned.has(p.id)).length;
     const customEntries = week.products
       .map((p, idx)=>({p, idx}))
       .filter(({p})=>p.catalogId===null && (p.category||'other')===catKey);
     const isOpen = !!accordionOpenState[catKey];
-    const countLabel = isOther ? `${customEntries.length}` : `${ownedCount}/${items.length}`;
+    const countLabel = isOther
+      ? `${customEntries.length}`
+      : `${ownedCatalogCount + customEntries.length}/${catalogItems.length + customEntries.length}`;
     const section = document.createElement('div');
     section.className = 'acc-section';
     section.innerHTML = `
@@ -775,19 +777,24 @@ function renderCatalogAccordion(){
         <span class="acc-arrow">${isOpen?'▾':'▸'}</span>
       </button>
       <div class="acc-body" style="display:${isOpen?'grid':'none'}">
-        ${items.map(p=>`
+        ${catalogItems.map(p=>`
           <label class="acc-item">
             <input type="checkbox" data-id="${p.id}" ${owned.has(p.id)?'checked':''}>
             <span>${escapeHtml(tf(p))}</span>
           </label>`).join('')}
-        ${customEntries.map(({p, idx})=>`
+        ${customEntries.map(({p, idx})=> isOther ? `
           <div class="acc-custom">
             <span class="acc-custom-label">${escapeHtml(p.label)}</span>
             <select data-reassign-idx="${idx}">
               ${Object.keys(CATEGORIES).map(ck=>`<option value="${ck}" ${(p.category||'other')===ck?'selected':''}>${escapeHtml(tf(CATEGORIES[ck]))}</option>`).join('')}
             </select>
             <button type="button" class="btn-danger-ghost" data-remove-idx="${idx}">×</button>
-          </div>`).join('')}
+          </div>` : `
+          <label class="acc-item">
+            <input type="checkbox" checked data-custom-idx="${idx}">
+            <span>${escapeHtml(p.label)}</span>
+          </label>`
+        ).join('')}
       </div>`;
     container.appendChild(section);
   });
@@ -798,8 +805,13 @@ function renderCatalogAccordion(){
       renderCatalogAccordion();
     });
   });
-  container.querySelectorAll('.acc-item input[type=checkbox]').forEach(cb=>{
+  container.querySelectorAll('input[data-id]').forEach(cb=>{
     cb.addEventListener('change', ()=>toggleCatalogProduct(cb.dataset.id, cb.checked));
+  });
+  container.querySelectorAll('input[data-custom-idx]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      if(!cb.checked) removeProduct(Number(cb.dataset.customIdx));
+    });
   });
   container.querySelectorAll('[data-reassign-idx]').forEach(sel=>{
     sel.addEventListener('change', ()=>{
