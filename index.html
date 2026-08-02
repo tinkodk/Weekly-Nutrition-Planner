@@ -51,11 +51,20 @@
   .chip .cat-dot{width:8px;height:8px;border-radius:50%;background:var(--primary)}
   .empty-hint{color:var(--muted);font-size:13.5px;padding:14px;text-align:center;border:1px dashed var(--border);border-radius:10px;margin-top:14px}
   .actions-row{display:flex;justify-content:space-between;align-items:center;margin-top:22px;flex-wrap:wrap;gap:10px}
-  .autocomplete-wrap{position:relative}
-  .ac-list{position:absolute;top:100%;inset-inline-start:0;width:100%;background:#fff;border:1px solid var(--border);border-radius:9px;box-shadow:var(--shadow);max-height:220px;overflow:auto;z-index:20;margin-top:4px;display:none}
-  .ac-list.show{display:block}
-  .ac-item{padding:9px 12px;font-size:13.5px;cursor:pointer}
-  .ac-item:hover{background:var(--primary-light)}
+  .week-bar{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+  .week-bar > div{min-width:220px}
+  .week-bar label{margin-bottom:5px}
+  .catalog-accordion{border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .acc-section + .acc-section{border-top:1px solid var(--border)}
+  .acc-header{width:100%;display:flex;align-items:center;gap:10px;background:#fafcf9;border:none;padding:12px 14px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--ink);text-align:start}
+  .acc-header:hover{background:var(--primary-light)}
+  .acc-header .acc-name{flex:1}
+  .acc-count{font-size:12px;font-weight:700;color:var(--primary-dark);background:var(--primary-light);padding:2px 9px;border-radius:20px;flex:0 0 auto}
+  .acc-arrow{color:var(--muted);font-size:11px;width:14px;text-align:center;flex:0 0 auto}
+  .acc-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px;padding:12px 14px}
+  .acc-item{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:6px 8px;border-radius:8px;cursor:pointer}
+  .acc-item:hover{background:var(--primary-light)}
+  .acc-item input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer}
   .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-top:18px}
   @media (max-width:980px){.week-grid{grid-template-columns:repeat(2,1fr)}}
   @media (max-width:560px){.week-grid{grid-template-columns:1fr}}
@@ -113,32 +122,24 @@
 <main>
   <section id="sec-products" class="active">
     <div class="card">
-      <h2 class="section-title" id="t-productsTitle">מה קנית השבוע?</h2>
-      <p class="section-sub" id="t-productsSub">בחרי קטגוריה ומוצר מהרשימה, או הקלידי טקסט חופשי — כל מה שתוסיפי ישמש לבניית התפריט.</p>
-
-      <div class="grid-2">
+      <div class="week-bar">
         <div>
-          <div class="row">
-            <div>
-              <label id="t-catLabel">קטגוריה</label>
-              <select id="catSelect"></select>
-            </div>
-            <div class="autocomplete-wrap">
-              <label id="t-productLabel">מוצר</label>
-              <input type="text" id="productInput" autocomplete="off">
-              <div class="ac-list" id="acList"></div>
-            </div>
-            <div style="flex:0 0 auto">
-              <button class="btn btn-primary" id="addProductBtn">+</button>
-            </div>
-          </div>
+          <label id="t-weekLabel">שבוע</label>
+          <select id="weekSelect"></select>
         </div>
-        <div>
-          <label id="t-freeTextLabel">הוספה מהירה (טקסט חופשי, מופרד בפסיקים)</label>
-          <div class="row">
-            <div><input type="text" id="freeTextInput" placeholder="לדוגמה: אבוקדו, לחם שיפון, זעתר"></div>
-            <div style="flex:0 0 auto"><button class="btn btn-outline" id="addFreeTextBtn">הוסיפי</button></div>
-          </div>
+        <button class="btn btn-outline" id="newWeekBtn"></button>
+      </div>
+
+      <h2 class="section-title" id="t-productsTitle">מה קנית השבוע?</h2>
+      <p class="section-sub" id="t-productsSub">עברי על הקטגוריות וסמני מה כבר יש לך השבוע. מוצר שלא ברשימה? הוסיפי אותו למטה בטקסט חופשי.</p>
+
+      <div class="catalog-accordion" id="catalogAccordion"></div>
+
+      <div style="margin-top:18px">
+        <label id="t-freeTextLabel">הוספה מהירה (טקסט חופשי, מופרד בפסיקים)</label>
+        <div class="row">
+          <div><input type="text" id="freeTextInput" placeholder="לדוגמה: אבוקדו, לחם שיפון, זעתר"></div>
+          <div style="flex:0 0 auto"><button class="btn btn-outline" id="addFreeTextBtn">הוסיפי</button></div>
         </div>
       </div>
 
@@ -423,9 +424,10 @@ const STRINGS = {
   navShopping:{he:'רשימת השלמה',en:'Shopping List'},
   langBtn:{he:'English',en:'עברית'},
   productsTitle:{he:'מה קנית השבוע?',en:'What did you buy this week?'},
-  productsSub:{he:'בחרי קטגוריה ומוצר מהרשימה, או הקלידי טקסט חופשי — כל מה שתוסיפי ישמש לבניית התפריט.',en:'Pick a category and product from the list, or type free text — everything you add is used to build the menu.'},
-  catLabel:{he:'קטגוריה',en:'Category'},
-  productLabel:{he:'מוצר',en:'Product'},
+  productsSub:{he:'עברי על הקטגוריות וסמני מה כבר יש לך השבוע. מוצר שלא ברשימה? הוסיפי אותו למטה בטקסט חופשי.',en:"Go through the categories and check off what you already have this week. Something not on the list? Add it below as free text."},
+  weekLabel:{he:'שבוע',en:'Week'},
+  newWeekBtn:{he:'+ שבוע חדש',en:'+ New Week'},
+  weekOptionSuffix:{he:n=>`(${n} מוצרים)`,en:n=>`(${n} product${n===1?'':'s'})`},
   freeTextLabel:{he:'הוספה מהירה (טקסט חופשי, מופרד בפסיקים)',en:'Quick add (free text, comma-separated)'},
   freeTextPlaceholder:{he:'לדוגמה: אבוקדו, לחם שיפון, זעתר',en:'e.g. avocado, rye bread, za\'atar'},
   quickAddBtn:{he:'הוסיפי',en:'Add'},
@@ -452,14 +454,36 @@ const STRINGS = {
 
 /* ============ STATE ============ */
 const STORAGE_KEY = 'nutriplan_v1';
+
+function formatDate(ts){
+  const d = new Date(ts);
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+function makeWeek(products, plan){
+  const now = Date.now();
+  return {id:String(now), label:formatDate(now), createdAt:now, products:products||[], plan:plan||null};
+}
+function currentWeek(){
+  return db.weeks.find(w=>w.id===db.currentWeekId) || db.weeks[0];
+}
+
 let db = loadData();
 
 function loadData(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw) return JSON.parse(raw);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed.weeks && parsed.weeks.length) return parsed;
+      // migrate pre-weeks schema: {lang, products, plan}
+      const week = makeWeek(parsed.products||[], parsed.plan||null);
+      return {lang: parsed.lang||'he', weeks:[week], currentWeekId: week.id};
+    }
   }catch(e){}
-  return {lang:'he', products:[], plan:null};
+  const week = makeWeek();
+  return {lang:'he', weeks:[week], currentWeekId: week.id};
 }
 function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
 
@@ -483,8 +507,8 @@ function applyStaticStrings(){
   document.getElementById('langToggle').textContent = t('langBtn');
   document.getElementById('t-productsTitle').textContent = t('productsTitle');
   document.getElementById('t-productsSub').textContent = t('productsSub');
-  document.getElementById('t-catLabel').textContent = t('catLabel');
-  document.getElementById('t-productLabel').textContent = t('productLabel');
+  document.getElementById('t-weekLabel').textContent = t('weekLabel');
+  document.getElementById('newWeekBtn').textContent = t('newWeekBtn');
   document.getElementById('t-freeTextLabel').textContent = t('freeTextLabel');
   document.getElementById('freeTextInput').placeholder = t('freeTextPlaceholder');
   document.getElementById('addFreeTextBtn').textContent = t('quickAddBtn');
@@ -497,57 +521,137 @@ function applyStaticStrings(){
   document.getElementById('t-instructionsLabel').textContent = t('instructionsLabel');
   document.getElementById('t-footer').textContent = t('footer');
   document.getElementById('regenerateBtn').textContent = t('regenerateBtn');
-  populateCategorySelect();
+  renderWeekSelect();
   renderProducts();
+  renderCatalogAccordion();
   renderPlan();
   renderShoppingList();
 }
 
-/* ============ PRODUCTS UI ============ */
-function populateCategorySelect(){
-  const sel = document.getElementById('catSelect');
+/* ============ WEEKS UI ============ */
+function renderWeekSelect(){
+  const sel = document.getElementById('weekSelect');
   sel.innerHTML = '';
-  Object.keys(CATEGORIES).filter(c=>c!=='other').forEach(c=>{
+  db.weeks.forEach(w=>{
     const opt = document.createElement('option');
-    opt.value = c; opt.textContent = tf(CATEGORIES[c]);
+    opt.value = w.id;
+    opt.textContent = `${w.label} ${t('weekOptionSuffix')(w.products.length)}`;
+    if(w.id===db.currentWeekId) opt.selected = true;
     sel.appendChild(opt);
   });
-  refreshAutocomplete();
 }
+document.getElementById('weekSelect').addEventListener('change', (e)=>{
+  db.currentWeekId = e.target.value;
+  saveData();
+  renderProducts();
+  renderCatalogAccordion();
+  renderPlan();
+  renderShoppingList();
+});
+document.getElementById('newWeekBtn').addEventListener('click', ()=>{
+  const week = makeWeek();
+  db.weeks.unshift(week);
+  db.currentWeekId = week.id;
+  saveData();
+  renderWeekSelect();
+  renderProducts();
+  renderCatalogAccordion();
+  renderPlan();
+  renderShoppingList();
+  switchTab('products');
+});
 
-function refreshAutocomplete(){
-  const cat = document.getElementById('catSelect').value;
-  const input = document.getElementById('productInput');
-  input.dataset.cat = cat;
-}
-
+/* ============ PRODUCTS UI ============ */
 function matchProductByText(text){
   const norm = text.trim().toLowerCase();
   return PRODUCTS.find(p => p.he.toLowerCase()===norm || p.en.toLowerCase()===norm);
 }
 
+function ownedCatalogIdSet(){
+  return new Set(currentWeek().products.filter(p=>p.catalogId).map(p=>p.catalogId));
+}
+
 function addProduct(catalogId, customLabel, category){
+  const week = currentWeek();
   const item = catalogId
     ? {catalogId, category: PRODUCT_MAP[catalogId].cat, label: null}
     : {catalogId: null, category: category || 'other', label: customLabel};
   // avoid exact duplicates
-  const dup = db.products.some(p => catalogId ? p.catalogId===catalogId : (p.label && p.label.toLowerCase()===customLabel.toLowerCase()));
+  const dup = week.products.some(p => catalogId ? p.catalogId===catalogId : (p.label && p.label.toLowerCase()===customLabel.toLowerCase()));
   if(dup) return;
-  db.products.push(item);
+  week.products.push(item);
   saveData();
   renderProducts();
+  renderCatalogAccordion();
+  renderWeekSelect();
 }
 
 function removeProduct(idx){
-  db.products.splice(idx,1);
+  currentWeek().products.splice(idx,1);
   saveData();
   renderProducts();
+  renderCatalogAccordion();
+  renderWeekSelect();
+}
+
+function toggleCatalogProduct(catalogId, checked){
+  const week = currentWeek();
+  if(checked){
+    if(!week.products.some(p=>p.catalogId===catalogId)){
+      week.products.push({catalogId, category:PRODUCT_MAP[catalogId].cat, label:null});
+    }
+  } else {
+    week.products = week.products.filter(p=>p.catalogId!==catalogId);
+  }
+  saveData();
+  renderProducts();
+  renderCatalogAccordion();
+  renderWeekSelect();
+}
+
+const accordionOpenState = {};
+function renderCatalogAccordion(){
+  const container = document.getElementById('catalogAccordion');
+  const owned = ownedCatalogIdSet();
+  container.innerHTML = '';
+  Object.keys(CATEGORIES).filter(c=>c!=='other').forEach(catKey=>{
+    const items = PRODUCTS.filter(p=>p.cat===catKey);
+    const ownedCount = items.filter(p=>owned.has(p.id)).length;
+    const isOpen = !!accordionOpenState[catKey];
+    const section = document.createElement('div');
+    section.className = 'acc-section';
+    section.innerHTML = `
+      <button type="button" class="acc-header" data-cat="${catKey}">
+        <span class="acc-name">${escapeHtml(tf(CATEGORIES[catKey]))}</span>
+        <span class="acc-count">${ownedCount}/${items.length}</span>
+        <span class="acc-arrow">${isOpen?'▾':'▸'}</span>
+      </button>
+      <div class="acc-body" style="display:${isOpen?'grid':'none'}">
+        ${items.map(p=>`
+          <label class="acc-item">
+            <input type="checkbox" data-id="${p.id}" ${owned.has(p.id)?'checked':''}>
+            <span>${escapeHtml(tf(p))}</span>
+          </label>`).join('')}
+      </div>`;
+    container.appendChild(section);
+  });
+  container.querySelectorAll('.acc-header').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const cat = btn.dataset.cat;
+      accordionOpenState[cat] = !accordionOpenState[cat];
+      renderCatalogAccordion();
+    });
+  });
+  container.querySelectorAll('.acc-item input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>toggleCatalogProduct(cb.dataset.id, cb.checked));
+  });
 }
 
 function renderProducts(){
+  const week = currentWeek();
   const list = document.getElementById('productList');
   list.innerHTML = '';
-  db.products.forEach((p, idx)=>{
+  week.products.forEach((p, idx)=>{
     const li = document.createElement('li');
     li.className = 'chip';
     const label = p.catalogId ? tf(PRODUCT_MAP[p.catalogId]) : p.label;
@@ -560,9 +664,9 @@ function renderProducts(){
     list.appendChild(li);
   });
   const hint = document.getElementById('emptyProductsHint');
-  hint.style.display = db.products.length ? 'none' : 'block';
+  hint.style.display = week.products.length ? 'none' : 'block';
   hint.textContent = t('emptyProducts');
-  document.getElementById('productCountHint').textContent = db.products.length ? t('productCountHint')(db.products.length) : '';
+  document.getElementById('productCountHint').textContent = week.products.length ? t('productCountHint')(week.products.length) : '';
 }
 
 function escapeHtml(s){
@@ -570,46 +674,6 @@ function escapeHtml(s){
   d.textContent = s;
   return d.innerHTML;
 }
-
-document.getElementById('catSelect').addEventListener('change', refreshAutocomplete);
-
-document.getElementById('productInput').addEventListener('input', (e)=>{
-  delete e.target.dataset.selectedId;
-  const val = e.target.value.trim();
-  const acList = document.getElementById('acList');
-  if(!val){ acList.classList.remove('show'); acList.innerHTML=''; return; }
-  const cat = document.getElementById('catSelect').value;
-  const matches = PRODUCTS.filter(p => p.cat===cat && (p.he.includes(val) || p.en.toLowerCase().includes(val.toLowerCase()))).slice(0,8);
-  if(!matches.length){ acList.classList.remove('show'); acList.innerHTML=''; return; }
-  acList.innerHTML = matches.map(m=>`<div class="ac-item" data-id="${m.id}">${escapeHtml(tf(m))}</div>`).join('');
-  acList.classList.add('show');
-  acList.querySelectorAll('.ac-item').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      document.getElementById('productInput').value = tf(PRODUCT_MAP[el.dataset.id]);
-      document.getElementById('productInput').dataset.selectedId = el.dataset.id;
-      acList.classList.remove('show');
-    });
-  });
-});
-document.addEventListener('click',(e)=>{
-  if(!e.target.closest('.autocomplete-wrap')) document.getElementById('acList').classList.remove('show');
-});
-
-document.getElementById('addProductBtn').addEventListener('click', ()=>{
-  const input = document.getElementById('productInput');
-  const cat = document.getElementById('catSelect').value;
-  const typed = input.value.trim();
-  if(!typed) return;
-  const selectedId = input.dataset.selectedId;
-  const catalogMatch = selectedId && PRODUCT_MAP[selectedId] ? PRODUCT_MAP[selectedId] : matchProductByText(typed);
-  if(catalogMatch){
-    addProduct(catalogMatch.id, null, catalogMatch.cat);
-  } else {
-    addProduct(null, typed, cat);
-  }
-  input.value = '';
-  delete input.dataset.selectedId;
-});
 
 document.getElementById('addFreeTextBtn').addEventListener('click', ()=>{
   const input = document.getElementById('freeTextInput');
@@ -623,9 +687,6 @@ document.getElementById('addFreeTextBtn').addEventListener('click', ()=>{
 });
 document.getElementById('freeTextInput').addEventListener('keydown', (e)=>{
   if(e.key==='Enter'){ e.preventDefault(); document.getElementById('addFreeTextBtn').click(); }
-});
-document.getElementById('productInput').addEventListener('keydown', (e)=>{
-  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('addProductBtn').click(); }
 });
 
 /* ============ TABS ============ */
@@ -651,12 +712,8 @@ document.getElementById('langToggle').addEventListener('click', ()=>{
 });
 
 /* ============ MENU ENGINE ============ */
-function ownedIdSet(){
-  return new Set(db.products.filter(p=>p.catalogId).map(p=>p.catalogId));
-}
-
 function generatePlan(){
-  const owned = ownedIdSet();
+  const owned = ownedCatalogIdSet();
   const plan = [];
   const usageCount = {}; // recipeId -> times used this week
   const lastUsedDay = {}; // recipeId -> last day index used
@@ -688,7 +745,7 @@ function generatePlan(){
     });
     plan.push(dayPlan);
   }
-  db.plan = plan;
+  currentWeek().plan = plan;
   saveData();
   renderPlan();
   renderShoppingList();
@@ -699,10 +756,11 @@ document.getElementById('generateBtn').addEventListener('click', generatePlan);
 document.getElementById('regenerateBtn').addEventListener('click', generatePlan);
 
 function renderPlan(){
+  const plan = currentWeek().plan;
   const grid = document.getElementById('weekGrid');
   const emptyHint = document.getElementById('planEmptyHint');
   const regenRow = document.getElementById('regenerateRow');
-  if(!db.plan){
+  if(!plan){
     grid.innerHTML = '';
     emptyHint.style.display = 'block';
     emptyHint.textContent = t('planEmpty');
@@ -712,7 +770,7 @@ function renderPlan(){
   emptyHint.style.display = 'none';
   regenRow.style.display = 'flex';
   grid.innerHTML = '';
-  db.plan.forEach((dayPlan, dayIdx)=>{
+  plan.forEach((dayPlan, dayIdx)=>{
     const col = document.createElement('div');
     col.className = 'day-col';
     const head = document.createElement('div');
@@ -741,16 +799,17 @@ function renderPlan(){
 
 /* ============ SHOPPING LIST ============ */
 function renderShoppingList(){
+  const plan = currentWeek().plan;
   const listEl = document.getElementById('shoppingList');
   const emptyHint = document.getElementById('shoppingEmptyHint');
   listEl.innerHTML = '';
-  if(!db.plan){
+  if(!plan){
     emptyHint.style.display = 'block';
     emptyHint.textContent = t('shoppingEmpty');
     return;
   }
   const counts = {};
-  db.plan.forEach(dayPlan=>{
+  plan.forEach(dayPlan=>{
     MEAL_TYPES.forEach(mealType=>{
       dayPlan[mealType].missing.forEach(id=>{
         counts[id] = (counts[id]||0) + 1;

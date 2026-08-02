@@ -8,16 +8,18 @@ Hebrew/English bilingual web app that turns a list of purchased groceries into a
 
 **Single-file app**: Everything lives in `index.html` — HTML, CSS, and JS in one file. No build tools, no npm, no bundler.
 
-**Data persistence**: `localStorage` under key `nutriplan_v1`. All state changes call `saveData()`. `loadData()` provides an empty default (`{lang, products: [], plan: null}`) — there is no seed data, since grocery lists change weekly and aren't meant to be committed like the wedding app's guest list. Git is used to host/back up the *code*, not the weekly product list.
+**Data persistence**: `localStorage` under key `nutriplan_v1`. All state changes call `saveData()`. There is no seed data, since grocery lists change weekly and aren't meant to be committed like the wedding app's guest list. Git is used to host/back up the *code*, not the weekly product list.
+
+**Weekly history**: state is `{lang, weeks: [{id, label, createdAt, products, plan}], currentWeekId}` — each week keeps its own products and generated plan, so starting a new week (`newWeekBtn`) never deletes prior weeks. `currentWeek()` resolves the active week; the week `<select>` switches `db.currentWeekId`. `loadData()` migrates the older flat schema (`{lang, products, plan}`, no `weeks` array) into a single-week `weeks` array on first load, so no existing user data is lost.
 
 **Hosting**: static site pushed to a public GitHub repo, served via GitHub Pages so it's reachable via URL from any computer. The files also live locally under OneDrive (`PersonalCode/Food/`).
 
 ## Data Model
 
 - `CATEGORIES` — food-group taxonomy (protein, dairy, grain, legume, veg, fruit, fat, sweet, other)
-- `PRODUCTS` — catalog of ~48 common grocery items, each `{id, he, en, cat}`
+- `PRODUCTS` — catalog of ~48 common grocery items, each `{id, he, en, cat}`. The products screen renders these as a collapsible-by-category checklist (`renderCatalogAccordion()`) — checking an item toggles it in the current week's product list.
 - `RECIPES` — ~30 recipes, each `{id, mealType, prepMin, name:{he,en}, ingredients:[{id, qty:{he,en}}], instructions:{he:[...],en:[...]}, nutrition:{he,en}}`. Ingredients reference `PRODUCTS` ids for matching.
-- `db` (persisted state): `{lang, products: [{catalogId|null, category, label|null}], plan: [{breakfast:{recipeId,missing[]}, lunch:..., dinner:..., snack:...} × 7]}`
+- Each week: `{id, label, createdAt, products: [{catalogId|null, category, label|null}], plan: [{breakfast:{recipeId,missing[]}, lunch:..., dinner:..., snack:...} × 7] | null}`
 
 ## Menu Engine (`generatePlan()`)
 
