@@ -19,9 +19,10 @@ Hebrew/English bilingual web app that turns a list of purchased groceries into a
 ## Data Model
 
 - `CATEGORIES` — food-group taxonomy (protein, dairy, grain, legume, veg, fruit, fat, sweet, other)
-- `PRODUCTS` — catalog of ~48 common grocery items, each `{id, he, en, cat}`. The products screen renders these as a collapsible-by-category checklist (`renderCatalogAccordion()`) — checking an item toggles it in the current week's product list. Free-text items that don't match the catalog land in category `'other'` ("Uncategorized"), shown there with a `<select>` to assign a real category. Once assigned (category !== 'other'), the item renders as a plain checked checkbox alongside the catalog items in that category — visually identical, no more select — and unchecking it deletes it (there's no catalog id to "uncheck back to"). Only unassigned (`'other'`) items keep the assign-select + remove-button row.
-- `RECIPES` — ~30 recipes, each `{id, mealType, prepMin, name:{he,en}, ingredients:[{id, qty:{he,en}}], instructions:{he:[...],en:[...]}, nutrition:{he,en}}`. Ingredients reference `PRODUCTS` ids for matching.
-- Each week: `{id, label, createdAt, products: [{catalogId|null, category, label|null}], plan: [{breakfast:{recipeId,missing[]}, lunch:..., dinner:..., snack:...} × 7] | null}`
+- `PRODUCTS` — catalog of ~48 common built-in grocery items, each `{id, he, en, cat}`. Fixed, not user-editable.
+- `db.customProducts` — the user's **permanent personal catalog** of free-text items that didn't match `PRODUCTS`, each `{id, label, cat}`. Created via `findOrCreateCustomProduct()` on free-text add (default `cat:'other'`). These persist across weeks just like built-ins — `renderCatalogAccordion()` lists every custom product under its `cat` (including `'other'` → "Uncategorized" section) as a plain checkbox alongside the catalog items for that category, checked only if owned *this* week. Clicking the ✎ button next to a custom item opens `editCustomModal` to rename it, change its category, or delete it permanently (from `customProducts` and every week's `products`). Unchecking a custom item's checkbox just un-owns it for the current week — it does **not** delete the definition.
+- `RECIPES` — ~30 recipes, each `{id, mealType, prepMin, name:{he,en}, ingredients:[{id, qty:{he,en}}], instructions:{he:[...],en:[...]}, nutrition:{he,en}}`. Ingredients reference `PRODUCTS` ids only (custom products never define new ingredients recipes can require).
+- Each week: `{id, label, createdAt, products: [{catalogId, category, label:null} | {customId}], plan: [{breakfast:{recipeId,missing[]}, lunch:..., dinner:..., snack:...} × 7] | null}`
 
 ## Menu Engine (`generatePlan()`)
 
@@ -33,6 +34,8 @@ For each of 7 days × 4 meal slots, scores every candidate recipe of that meal t
 Missing ingredients per recipe are collected across the week into the shopping list (`renderShoppingList()`), counted by how many recipes need each item.
 
 Nutrition values are pre-authored approximate ranges per recipe (not computed from ingredients) — this is intentional per product spec (general balance guidance, not exact macro tracking).
+
+**Fuzzy custom-product coverage**: `isIngredientCovered(ingId, ownedCatalog, ownedCustomCats)` treats a recipe ingredient as covered if the user owns it exactly (catalog match) OR owns *any* custom product in that ingredient's category this week (`ownedCustomCategorySet()`). This is deliberately coarse — e.g. owning a custom "fat"-category item counts toward *every* fat ingredient (olive oil, tahini, avocado, ...), not just a specific one — chosen intentionally over exact free-text-to-ingredient matching, which isn't feasible.
 
 ## i18n / RTL
 

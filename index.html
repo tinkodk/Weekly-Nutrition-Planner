@@ -65,9 +65,12 @@
   .acc-item{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:6px 8px;border-radius:8px;cursor:pointer}
   .acc-item:hover{background:var(--primary-light)}
   .acc-item input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer}
-  .acc-custom{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:13.5px;padding:6px 8px;border-radius:8px;background:#fbfcfb;flex-wrap:wrap}
-  .acc-custom .acc-custom-label{flex:1;min-width:80px;font-style:italic;color:var(--muted)}
-  .acc-custom select{width:auto;padding:4px 8px;font-size:12.5px;border:1px solid var(--border);border-radius:6px;background:#fff}
+  .acc-item-custom{display:flex;align-items:center;gap:2px;border-radius:8px}
+  .acc-item-custom label{display:flex;align-items:center;gap:8px;flex:1;font-size:13.5px;padding:6px 8px;border-radius:8px;cursor:pointer}
+  .acc-item-custom label:hover{background:var(--primary-light)}
+  .acc-item-custom input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer}
+  .acc-edit-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 7px;border-radius:6px;flex:0 0 auto}
+  .acc-edit-btn:hover{background:var(--primary-light);color:var(--primary-dark)}
   .sync-widget{display:flex;flex-direction:column;align-items:center;gap:3px}
   #sync-status{font-size:10.5px;color:var(--muted);min-height:12px}
   .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-top:18px}
@@ -214,6 +217,25 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="editCustomModal">
+  <div class="modal">
+    <button class="modal-close" id="editCustomModalClose">&times;</button>
+    <h3 id="t-editCustomTitle">עריכת מוצר</h3>
+    <label id="t-editCustomNameLabel">שם המוצר</label>
+    <input type="text" id="editCustomNameInput">
+    <div style="height:12px"></div>
+    <label id="t-editCustomCatLabel">קטגוריה</label>
+    <select id="editCustomCatSelect"></select>
+    <div class="actions-row">
+      <button class="btn btn-outline" id="deleteCustomBtn" style="color:#c14f3a;border-color:#f0d0c4"><span id="t-deleteCustomBtn">🗑 מחקי</span></button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" id="cancelCustomBtn"><span id="t-cancelBtn">ביטול</span></button>
+        <button class="btn btn-primary" id="saveCustomBtn"><span id="t-saveCustomBtn">שמרי</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <footer id="t-footer">נשמר אוטומטית בדפדפן הזה • הנתונים חיים גם ב-Git לגיבוי ולשיתוף בין מחשבים</footer>
 
 <script>
@@ -269,8 +291,8 @@ const PRODUCTS = [
   {id:'spinach',he:'תרד',en:'Spinach',cat:'veg'},
   {id:'lettuce',he:'חסה',en:'Lettuce',cat:'veg'},
   {id:'corn',he:'תירס',en:'Corn',cat:'veg'},
-  {id:'potato',he:'תפוח אדמה',en:'Potato',cat:'carb'},
-  {id:'sweet_potato',he:'בטטה',en:'Sweet Potato',cat:'carb'},
+  {id:'potato',he:'תפוח אדמה',en:'Potato',cat:'veg'},
+  {id:'sweet_potato',he:'בטטה',en:'Sweet Potato',cat:'veg'},
   {id:'banana',he:'בננה',en:'Banana',cat:'fruit'},
   {id:'apple',he:'תפוח עץ',en:'Apple',cat:'fruit'},
   {id:'strawberry',he:'תותים',en:'Strawberries',cat:'fruit'},
@@ -465,6 +487,14 @@ const STRINGS = {
   syncMissingToken:{he:'נא להזין GitHub Token',en:'Please enter a GitHub Token'},
   syncMissingBoth:{he:'נא להזין Token ו-Gist ID',en:'Please enter both a Token and a Gist ID'},
   syncLoadSuccess:{he:'נתונים נטענו מהענן בהצלחה',en:'Data loaded from the cloud successfully'},
+  editCustomTitle:{he:'עריכת מוצר',en:'Edit Product'},
+  editCustomNameLabel:{he:'שם המוצר',en:'Product name'},
+  editCustomCatLabel:{he:'קטגוריה',en:'Category'},
+  deleteCustomBtn:{he:'🗑 מחקי',en:'🗑 Delete'},
+  cancelBtn:{he:'ביטול',en:'Cancel'},
+  saveCustomBtn:{he:'שמרי',en:'Save'},
+  deleteCustomConfirm:{he:'למחוק את המוצר הזה לצמיתות מכל השבועות?',en:'Delete this product permanently from all weeks?'},
+  editCustomTitleAttr:{he:'ערכי מוצר זה',en:'Edit this product'},
   freeTextLabel:{he:'הוספה מהירה (טקסט חופשי, מופרד בפסיקים)',en:'Quick add (free text, comma-separated)'},
   freeTextPlaceholder:{he:'לדוגמה: אבוקדו, לחם שיפון, זעתר',en:'e.g. avocado, rye bread, za\'atar'},
   quickAddBtn:{he:'הוסיפי',en:'Add'},
@@ -508,11 +538,41 @@ function currentWeek(){
 
 let db = loadData();
 
+function makeCustomId(){
+  return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+}
+
+function migrateInlineCustomItems(dbObj){
+  if(!dbObj.customProducts) dbObj.customProducts = [];
+  dbObj.weeks.forEach(week=>{
+    week.products = week.products.map(p=>{
+      if(p.customId) return p; // already in the new shape
+      if(p.catalogId===null && p.label){
+        const norm = p.label.trim().toLowerCase();
+        let cp = dbObj.customProducts.find(c=>c.label.toLowerCase()===norm);
+        if(!cp){
+          cp = {id:makeCustomId(), label:p.label, cat:p.category||'other'};
+          dbObj.customProducts.push(cp);
+        } else if(p.category && p.category!=='other' && cp.cat==='other'){
+          cp.cat = p.category;
+        }
+        return {customId: cp.id};
+      }
+      return p;
+    });
+  });
+  return dbObj;
+}
+
 function normalizeDb(parsed){
-  if(parsed.weeks && parsed.weeks.length) return parsed;
-  // migrate pre-weeks schema: {lang, products, plan}
-  const week = makeWeek(parsed.products||[], parsed.plan||null);
-  return {lang: parsed.lang||'he', weeks:[week], currentWeekId: week.id};
+  let result;
+  if(parsed.weeks && parsed.weeks.length){
+    result = parsed;
+  } else {
+    const week = makeWeek(parsed.products||[], parsed.plan||null);
+    result = {lang: parsed.lang||'he', weeks:[week], currentWeekId: week.id};
+  }
+  return migrateInlineCustomItems(result);
 }
 function loadData(){
   try{
@@ -520,7 +580,7 @@ function loadData(){
     if(raw) return normalizeDb(JSON.parse(raw));
   }catch(e){}
   const week = makeWeek();
-  return {lang:'he', weeks:[week], currentWeekId: week.id};
+  return {lang:'he', weeks:[week], currentWeekId: week.id, customProducts:[]};
 }
 function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); scheduleSyncSave(); }
 
@@ -662,6 +722,12 @@ function applyStaticStrings(){
   document.getElementById('t-syncGistLabel').textContent = t('syncGistLabel');
   document.getElementById('t-loadFromCloudBtn').textContent = t('loadFromCloudBtn');
   document.getElementById('t-saveAndSyncBtn').textContent = t('saveAndSyncBtn');
+  document.getElementById('t-editCustomTitle').textContent = t('editCustomTitle');
+  document.getElementById('t-editCustomNameLabel').textContent = t('editCustomNameLabel');
+  document.getElementById('t-editCustomCatLabel').textContent = t('editCustomCatLabel');
+  document.getElementById('t-deleteCustomBtn').textContent = t('deleteCustomBtn');
+  document.getElementById('t-cancelBtn').textContent = t('cancelBtn');
+  document.getElementById('t-saveCustomBtn').textContent = t('saveCustomBtn');
   renderWeekSelect();
   renderProducts();
   renderCatalogAccordion();
@@ -711,16 +777,41 @@ function matchProductByText(text){
 function ownedCatalogIdSet(){
   return new Set(currentWeek().products.filter(p=>p.catalogId).map(p=>p.catalogId));
 }
+function ownedCustomIdSet(){
+  return new Set(currentWeek().products.filter(p=>p.customId).map(p=>p.customId));
+}
+function ownedCustomCategorySet(){
+  const owned = ownedCustomIdSet();
+  const cats = new Set();
+  db.customProducts.forEach(cp=>{ if(owned.has(cp.id)) cats.add(cp.cat); });
+  return cats;
+}
+function isIngredientCovered(ingId, ownedCatalog, ownedCustomCats){
+  if(ownedCatalog.has(ingId)) return true;
+  const cat = PRODUCT_MAP[ingId].cat;
+  return cat!=='other' && ownedCustomCats.has(cat);
+}
 
-function addProduct(catalogId, customLabel, category){
+function findOrCreateCustomProduct(label){
+  const norm = label.trim().toLowerCase();
+  let cp = db.customProducts.find(c=>c.label.toLowerCase()===norm);
+  if(!cp){
+    cp = {id:makeCustomId(), label:label.trim(), cat:'other'};
+    db.customProducts.push(cp);
+  }
+  return cp;
+}
+
+function addProduct(catalogId, customLabel){
   const week = currentWeek();
-  const item = catalogId
-    ? {catalogId, category: PRODUCT_MAP[catalogId].cat, label: null}
-    : {catalogId: null, category: category || 'other', label: customLabel};
-  // avoid exact duplicates
-  const dup = week.products.some(p => catalogId ? p.catalogId===catalogId : (p.label && p.label.toLowerCase()===customLabel.toLowerCase()));
-  if(dup) return;
-  week.products.push(item);
+  if(catalogId){
+    if(week.products.some(p=>p.catalogId===catalogId)) return;
+    week.products.push({catalogId, category: PRODUCT_MAP[catalogId].cat, label: null});
+  } else {
+    const cp = findOrCreateCustomProduct(customLabel);
+    if(week.products.some(p=>p.customId===cp.id)) return;
+    week.products.push({customId: cp.id});
+  }
   saveData();
   renderProducts();
   renderCatalogAccordion();
@@ -750,24 +841,87 @@ function toggleCatalogProduct(catalogId, checked){
   renderWeekSelect();
 }
 
+function toggleCustomProduct(customId, checked){
+  const week = currentWeek();
+  if(checked){
+    if(!week.products.some(p=>p.customId===customId)) week.products.push({customId});
+  } else {
+    week.products = week.products.filter(p=>p.customId!==customId);
+  }
+  saveData();
+  renderProducts();
+  renderCatalogAccordion();
+  renderWeekSelect();
+}
+
+/* ---- Edit/delete custom product popup ---- */
+let editingCustomId = null;
+function populateEditCustomCatSelect(){
+  const sel = document.getElementById('editCustomCatSelect');
+  sel.innerHTML = '';
+  Object.keys(CATEGORIES).forEach(ck=>{
+    const opt = document.createElement('option');
+    opt.value = ck; opt.textContent = tf(CATEGORIES[ck]);
+    sel.appendChild(opt);
+  });
+}
+function openEditCustomModal(id){
+  const cp = db.customProducts.find(c=>c.id===id);
+  if(!cp) return;
+  editingCustomId = id;
+  populateEditCustomCatSelect();
+  document.getElementById('editCustomNameInput').value = cp.label;
+  document.getElementById('editCustomCatSelect').value = cp.cat;
+  document.getElementById('editCustomModal').classList.add('show');
+}
+function closeEditCustomModal(){
+  document.getElementById('editCustomModal').classList.remove('show');
+  editingCustomId = null;
+}
+document.getElementById('editCustomModalClose').addEventListener('click', closeEditCustomModal);
+document.getElementById('cancelCustomBtn').addEventListener('click', closeEditCustomModal);
+document.getElementById('editCustomModal').addEventListener('click', (e)=>{ if(e.target.id==='editCustomModal') closeEditCustomModal(); });
+document.getElementById('saveCustomBtn').addEventListener('click', ()=>{
+  if(!editingCustomId) return;
+  const cp = db.customProducts.find(c=>c.id===editingCustomId);
+  if(!cp) return;
+  const name = document.getElementById('editCustomNameInput').value.trim();
+  if(!name) return;
+  cp.label = name;
+  cp.cat = document.getElementById('editCustomCatSelect').value;
+  saveData();
+  renderCatalogAccordion();
+  renderProducts();
+  closeEditCustomModal();
+});
+document.getElementById('deleteCustomBtn').addEventListener('click', ()=>{
+  if(!editingCustomId) return;
+  if(!confirm(t('deleteCustomConfirm'))) return;
+  const id = editingCustomId;
+  db.customProducts = db.customProducts.filter(c=>c.id!==id);
+  db.weeks.forEach(w=>{ w.products = w.products.filter(p=>p.customId!==id); });
+  saveData();
+  renderCatalogAccordion();
+  renderProducts();
+  renderWeekSelect();
+  closeEditCustomModal();
+});
+
 const accordionOpenState = {};
 function renderCatalogAccordion(){
   const container = document.getElementById('catalogAccordion');
-  const week = currentWeek();
-  const owned = ownedCatalogIdSet();
+  const ownedCatalog = ownedCatalogIdSet();
+  const ownedCustom = ownedCustomIdSet();
   container.innerHTML = '';
   const catKeys = [...Object.keys(CATEGORIES).filter(c=>c!=='other'), 'other'];
   catKeys.forEach(catKey=>{
     const isOther = catKey==='other';
     const catalogItems = isOther ? [] : PRODUCTS.filter(p=>p.cat===catKey);
-    const ownedCatalogCount = catalogItems.filter(p=>owned.has(p.id)).length;
-    const customEntries = week.products
-      .map((p, idx)=>({p, idx}))
-      .filter(({p})=>p.catalogId===null && (p.category||'other')===catKey);
+    const customItems = db.customProducts.filter(c=>c.cat===catKey);
+    const ownedCatalogCount = catalogItems.filter(p=>ownedCatalog.has(p.id)).length;
+    const ownedCustomCount = customItems.filter(c=>ownedCustom.has(c.id)).length;
     const isOpen = !!accordionOpenState[catKey];
-    const countLabel = isOther
-      ? `${customEntries.length}`
-      : `${ownedCatalogCount + customEntries.length}/${catalogItems.length + customEntries.length}`;
+    const countLabel = `${ownedCatalogCount + ownedCustomCount}/${catalogItems.length + customItems.length}`;
     const section = document.createElement('div');
     section.className = 'acc-section';
     section.innerHTML = `
@@ -779,22 +933,17 @@ function renderCatalogAccordion(){
       <div class="acc-body" style="display:${isOpen?'grid':'none'}">
         ${catalogItems.map(p=>`
           <label class="acc-item">
-            <input type="checkbox" data-id="${p.id}" ${owned.has(p.id)?'checked':''}>
+            <input type="checkbox" data-id="${p.id}" ${ownedCatalog.has(p.id)?'checked':''}>
             <span>${escapeHtml(tf(p))}</span>
           </label>`).join('')}
-        ${customEntries.map(({p, idx})=> isOther ? `
-          <div class="acc-custom">
-            <span class="acc-custom-label">${escapeHtml(p.label)}</span>
-            <select data-reassign-idx="${idx}">
-              ${Object.keys(CATEGORIES).map(ck=>`<option value="${ck}" ${(p.category||'other')===ck?'selected':''}>${escapeHtml(tf(CATEGORIES[ck]))}</option>`).join('')}
-            </select>
-            <button type="button" class="btn-danger-ghost" data-remove-idx="${idx}">×</button>
-          </div>` : `
-          <label class="acc-item">
-            <input type="checkbox" checked data-custom-idx="${idx}">
-            <span>${escapeHtml(p.label)}</span>
-          </label>`
-        ).join('')}
+        ${customItems.map(c=>`
+          <div class="acc-item-custom">
+            <label>
+              <input type="checkbox" data-custom-id="${c.id}" ${ownedCustom.has(c.id)?'checked':''}>
+              <span>${escapeHtml(c.label)}</span>
+            </label>
+            <button type="button" class="acc-edit-btn" data-edit-custom-id="${c.id}" title="${escapeHtml(t('editCustomTitleAttr'))}">✎</button>
+          </div>`).join('')}
       </div>`;
     container.appendChild(section);
   });
@@ -808,21 +957,11 @@ function renderCatalogAccordion(){
   container.querySelectorAll('input[data-id]').forEach(cb=>{
     cb.addEventListener('change', ()=>toggleCatalogProduct(cb.dataset.id, cb.checked));
   });
-  container.querySelectorAll('input[data-custom-idx]').forEach(cb=>{
-    cb.addEventListener('change', ()=>{
-      if(!cb.checked) removeProduct(Number(cb.dataset.customIdx));
-    });
+  container.querySelectorAll('input[data-custom-id]').forEach(cb=>{
+    cb.addEventListener('change', ()=>toggleCustomProduct(cb.dataset.customId, cb.checked));
   });
-  container.querySelectorAll('[data-reassign-idx]').forEach(sel=>{
-    sel.addEventListener('change', ()=>{
-      const idx = Number(sel.dataset.reassignIdx);
-      currentWeek().products[idx].category = sel.value;
-      saveData();
-      renderCatalogAccordion();
-    });
-  });
-  container.querySelectorAll('[data-remove-idx]').forEach(btn=>{
-    btn.addEventListener('click', ()=>removeProduct(Number(btn.dataset.removeIdx)));
+  container.querySelectorAll('[data-edit-custom-id]').forEach(btn=>{
+    btn.addEventListener('click', ()=>openEditCustomModal(btn.dataset.editCustomId));
   });
 }
 
@@ -833,7 +972,9 @@ function renderProducts(){
   week.products.forEach((p, idx)=>{
     const li = document.createElement('li');
     li.className = 'chip';
-    const label = p.catalogId ? tf(PRODUCT_MAP[p.catalogId]) : p.label;
+    let label;
+    if(p.catalogId){ label = tf(PRODUCT_MAP[p.catalogId]); }
+    else { const cp = db.customProducts.find(c=>c.id===p.customId); label = cp ? cp.label : '?'; }
     li.innerHTML = `<span class="cat-dot"></span><span>${escapeHtml(label)}</span>`;
     const rm = document.createElement('button');
     rm.className = 'btn-danger-ghost';
@@ -859,8 +1000,8 @@ document.getElementById('addFreeTextBtn').addEventListener('click', ()=>{
   const parts = input.value.split(',').map(s=>s.trim()).filter(Boolean);
   parts.forEach(txt=>{
     const m = matchProductByText(txt);
-    if(m) addProduct(m.id, null, m.cat);
-    else addProduct(null, txt, 'other');
+    if(m) addProduct(m.id, null);
+    else addProduct(null, txt);
   });
   input.value = '';
 });
@@ -893,6 +1034,8 @@ document.getElementById('langToggle').addEventListener('click', ()=>{
 /* ============ MENU ENGINE ============ */
 function generatePlan(){
   const owned = ownedCatalogIdSet();
+  const ownedCustomCats = ownedCustomCategorySet();
+  const covered = (ingId) => isIngredientCovered(ingId, owned, ownedCustomCats);
   const plan = [];
   const usageCount = {}; // recipeId -> times used this week
   const lastUsedDay = {}; // recipeId -> last day index used
@@ -904,7 +1047,7 @@ function generatePlan(){
       let best = null, bestScore = -Infinity;
       candidates.forEach(r=>{
         const total = r.ingredients.length;
-        const ownedCount = r.ingredients.filter(ing=>owned.has(ing.id)).length;
+        const ownedCount = r.ingredients.filter(ing=>covered(ing.id)).length;
         const coverage = total ? ownedCount/total : 0;
         const usedBefore = usageCount[r.id] || 0;
         const gapSinceUsed = lastUsedDay[r.id]===undefined ? 99 : (day - lastUsedDay[r.id]);
@@ -917,7 +1060,7 @@ function generatePlan(){
         const score = coverage - recentPenalty + jitter;
         if(score > bestScore){ bestScore = score; best = r; }
       });
-      const missing = best.ingredients.filter(ing=>!owned.has(ing.id)).map(ing=>ing.id);
+      const missing = best.ingredients.filter(ing=>!covered(ing.id)).map(ing=>ing.id);
       dayPlan[mealType] = {recipeId: best.id, missing};
       usageCount[best.id] = (usageCount[best.id]||0) + 1;
       lastUsedDay[best.id] = day;
