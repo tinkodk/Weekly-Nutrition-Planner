@@ -73,6 +73,8 @@
   .acc-edit-btn:hover{background:var(--primary-light);color:var(--primary-dark)}
   .sync-widget{display:flex;flex-direction:column;align-items:center;gap:3px}
   #sync-status{font-size:10.5px;color:var(--muted);min-height:12px}
+  .profile-widget{display:flex;align-items:center;gap:6px}
+  .profile-select{width:auto;border-radius:20px;padding:6px 12px;font-size:13px;font-weight:600;border:1px solid var(--border);background:#fff;min-width:100px}
   .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-top:18px}
   @media (max-width:980px){.week-grid{grid-template-columns:repeat(2,1fr)}}
   @media (max-width:560px){.week-grid{grid-template-columns:1fr}}
@@ -123,6 +125,10 @@
       <button data-tab="plan" id="t-navPlan">התפריט השבועי</button>
       <button data-tab="shopping" id="t-navShopping">רשימת השלמה</button>
     </nav>
+    <div class="profile-widget">
+      <span style="font-size:14px">👤</span>
+      <select id="profileSelect" class="profile-select"></select>
+    </div>
     <div class="sync-widget">
       <button class="lang-toggle" id="syncBtn">☁️ <span id="t-syncBtnLabel">סנכרון</span></button>
       <div id="sync-status"></div>
@@ -197,6 +203,20 @@
     <ul class="ing-list" id="modalIngredients"></ul>
     <h4 id="t-instructionsLabel">אופן ההכנה</h4>
     <ol class="steps" id="modalSteps"></ol>
+  </div>
+</div>
+
+<div class="modal-overlay" id="profileModal">
+  <div class="modal">
+    <button class="modal-close" id="profileModalClose">&times;</button>
+    <h3 id="t-profileModalTitle">מי את?</h3>
+    <p class="section-sub" id="t-profileModalHint"></p>
+    <label id="t-profileNameLabel">השם שלך</label>
+    <input type="text" id="profileNameInput" placeholder="לדוגמה: דני">
+    <div class="actions-row">
+      <button class="btn btn-outline" id="profileModalCancelBtn"><span id="t-profileCancelBtn">ביטול</span></button>
+      <button class="btn btn-primary" id="profileModalCreateBtn"><span id="t-profileCreateBtn">התחילי</span></button>
+    </div>
   </div>
 </div>
 
@@ -495,6 +515,14 @@ const STRINGS = {
   saveCustomBtn:{he:'שמרי',en:'Save'},
   deleteCustomConfirm:{he:'למחוק את המוצר הזה לצמיתות מכל השבועות?',en:'Delete this product permanently from all weeks?'},
   editCustomTitleAttr:{he:'ערכי מוצר זה',en:'Edit this product'},
+  addProfileOption:{he:'+ הוסיפי פרופיל...',en:'+ Add profile...'},
+  profileModalTitle:{he:'מי את?',en:'Who are you?'},
+  profileModalHint:{he:'תני שם כדי לשמור את הנתונים שלך בנפרד משל כל מי שמשתמש/ת באתר הזה — בין אם מהמחשב הזה ובין אם מכל מחשב אחר.',en:'Give yourself a name to keep your data separate from anyone else using this site — whether on this computer or any other.'},
+  profileModalHintLegacy:{he:'מצאנו נתונים קיימים בדפדפן הזה. תני להם שם כדי להמשיך איתם.',en:'We found existing data in this browser. Give it a name to continue with it.'},
+  profileNameLabel:{he:'השם שלך',en:'Your name'},
+  profileNamePlaceholder:{he:'לדוגמה: דני',en:'e.g. Dani'},
+  profileCreateBtn:{he:'התחילי',en:'Start'},
+  profileCancelBtn:{he:'ביטול',en:'Cancel'},
   freeTextLabel:{he:'הוספה מהירה (טקסט חופשי, מופרד בפסיקים)',en:'Quick add (free text, comma-separated)'},
   freeTextPlaceholder:{he:'לדוגמה: אבוקדו, לחם שיפון, זעתר',en:'e.g. avocado, rye bread, za\'atar'},
   quickAddBtn:{he:'הוסיפי',en:'Add'},
@@ -519,9 +547,22 @@ const STRINGS = {
   mealLabels:{breakfast:{he:'בוקר',en:'Breakfast'},lunch:{he:'צהריים',en:'Lunch'},dinner:{he:'ערב',en:'Dinner'},snack:{he:'נשנוש',en:'Snack'}}
 };
 
-/* ============ STATE ============ */
-const STORAGE_KEY = 'nutriplan_v1';
+/* ============ PROFILES (multi-person storage) ============ */
+const PROFILES_KEY = 'nutriplan_profiles_v1';
+function profileDataKey(name){ return 'nutriplan_v1::'+name; }
+function profileSyncKey(name){ return 'nutriplan_sync_v1::'+name; }
+function loadProfiles(){
+  try{
+    const p = JSON.parse(localStorage.getItem(PROFILES_KEY));
+    if(p && Array.isArray(p.list)) return p;
+  }catch(e){}
+  return {list:[], current:null};
+}
+function saveProfiles(){ localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); }
+let profiles = loadProfiles();
+let profileModalHasLegacy = false;
 
+/* ============ STATE ============ */
 function formatDate(ts){
   const d = new Date(ts);
   const dd = String(d.getDate()).padStart(2,'0');
@@ -535,8 +576,10 @@ function makeWeek(products, plan){
 function currentWeek(){
   return db.weeks.find(w=>w.id===db.currentWeekId) || db.weeks[0];
 }
-
-let db = loadData();
+function emptyProfileData(lang){
+  const week = makeWeek();
+  return {lang: lang||'he', weeks:[week], currentWeekId: week.id, customProducts:[]};
+}
 
 function makeCustomId(){
   return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -576,18 +619,26 @@ function normalizeDb(parsed){
 }
 function loadData(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(profileDataKey(profiles.current));
     if(raw) return normalizeDb(JSON.parse(raw));
   }catch(e){}
-  const week = makeWeek();
-  return {lang:'he', weeks:[week], currentWeekId: week.id, customProducts:[]};
+  return emptyProfileData('he');
 }
-function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); scheduleSyncSave(); }
+function saveData(){
+  if(!profiles.current) return;
+  localStorage.setItem(profileDataKey(profiles.current), JSON.stringify(db));
+  scheduleSyncSave();
+}
+
+let db = emptyProfileData('he');
 
 /* ============ CLOUD SYNC (GitHub Gist) ============ */
-const SYNC_KEY = 'nutriplan_sync_v1';
+function loadSyncConfig(){
+  if(!profiles.current) return {};
+  try{ return JSON.parse(localStorage.getItem(profileSyncKey(profiles.current))||'{}'); }
+  catch(e){ return {}; }
+}
 let syncConfig = {};
-try { syncConfig = JSON.parse(localStorage.getItem(SYNC_KEY)||'{}'); } catch(e){}
 let syncTimer = null;
 
 function scheduleSyncSave(){
@@ -597,9 +648,9 @@ function scheduleSyncSave(){
   syncTimer = setTimeout(saveToGist, 3000);
 }
 async function saveToGist(){
-  if(!syncConfig.token) return;
+  if(!syncConfig.token || !profiles.current) return;
   updateSyncStatus('saving');
-  const body = {description:'Weekly Nutrition Planner data', public:false,
+  const body = {description:'Weekly Nutrition Planner data ('+profiles.current+')', public:false,
     files:{'nutriplan-data.json':{content:JSON.stringify(db,null,2)}}};
   try{
     const url = syncConfig.gistId ? 'https://api.github.com/gists/'+syncConfig.gistId : 'https://api.github.com/gists';
@@ -609,7 +660,7 @@ async function saveToGist(){
     const data = await res.json();
     syncConfig.gistId = data.id;
     syncConfig.lastSync = new Date().toISOString();
-    localStorage.setItem(SYNC_KEY, JSON.stringify(syncConfig));
+    localStorage.setItem(profileSyncKey(profiles.current), JSON.stringify(syncConfig));
     document.getElementById('syncGistIdInput').value = syncConfig.gistId;
     updateSyncStatus('synced');
   }catch(e){
@@ -629,11 +680,11 @@ async function loadFromGist(){
     const content = gist.files['nutriplan-data.json'] && gist.files['nutriplan-data.json'].content;
     if(!content) throw new Error('nutriplan-data.json not found in Gist');
     db = normalizeDb(JSON.parse(content));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    if(profiles.current) localStorage.setItem(profileDataKey(profiles.current), JSON.stringify(db));
     syncConfig.token = token;
     syncConfig.gistId = gistId;
     syncConfig.lastSync = new Date().toISOString();
-    localStorage.setItem(SYNC_KEY, JSON.stringify(syncConfig));
+    if(profiles.current) localStorage.setItem(profileSyncKey(profiles.current), JSON.stringify(syncConfig));
     applyStaticStrings();
     updateSyncStatus('synced');
     alert(t('syncLoadSuccess'));
@@ -671,7 +722,7 @@ function saveSyncConfig(){
   if(!token){ alert(t('syncMissingToken')); return; }
   syncConfig.token = token;
   if(gistId) syncConfig.gistId = gistId;
-  localStorage.setItem(SYNC_KEY, JSON.stringify(syncConfig));
+  if(profiles.current) localStorage.setItem(profileSyncKey(profiles.current), JSON.stringify(syncConfig));
   closeSyncModal();
   saveToGist();
 }
@@ -680,6 +731,97 @@ document.getElementById('syncModalClose').addEventListener('click', closeSyncMod
 document.getElementById('syncModal').addEventListener('click', (e)=>{ if(e.target.id==='syncModal') closeSyncModal(); });
 document.getElementById('loadFromGistBtn').addEventListener('click', loadFromGist);
 document.getElementById('saveSyncConfigBtn').addEventListener('click', saveSyncConfig);
+
+/* ============ PROFILE SWITCHER UI ============ */
+function renderProfileSelect(){
+  const sel = document.getElementById('profileSelect');
+  sel.innerHTML = '';
+  profiles.list.forEach(name=>{
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    if(name===profiles.current) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  const addOpt = document.createElement('option');
+  addOpt.value = '__new__';
+  addOpt.textContent = t('addProfileOption');
+  sel.appendChild(addOpt);
+}
+function openProfileModal(opts){
+  opts = opts || {};
+  profileModalHasLegacy = !!opts.hasLegacy;
+  document.getElementById('profileNameInput').value = '';
+  document.getElementById('profileModalCancelBtn').style.display = opts.forced ? 'none' : 'inline-block';
+  document.getElementById('profileModal').dataset.forced = opts.forced ? '1' : '0';
+  document.getElementById('t-profileModalHint').textContent = profileModalHasLegacy ? t('profileModalHintLegacy') : t('profileModalHint');
+  document.getElementById('profileModal').classList.add('show');
+}
+function closeProfileModal(){
+  if(document.getElementById('profileModal').dataset.forced==='1') return;
+  document.getElementById('profileModal').classList.remove('show');
+}
+function loadActiveProfile(){
+  clearTimeout(syncTimer);
+  db = loadData();
+  syncConfig = loadSyncConfig();
+  renderProfileSelect();
+  applyStaticStrings();
+  if(syncConfig.lastSync) updateSyncStatus('synced'); else document.getElementById('sync-status').innerHTML = '';
+}
+function switchProfile(name){
+  if(!profiles.list.includes(name)) return;
+  profiles.current = name;
+  saveProfiles();
+  loadActiveProfile();
+}
+function createProfile(name){
+  if(profiles.list.includes(name) && name!==profiles.current){
+    switchProfile(name);
+    return;
+  }
+  const isFirstEver = profiles.list.length===0;
+  if(!profiles.list.includes(name)) profiles.list.push(name);
+  if(isFirstEver){
+    const legacyData = localStorage.getItem('nutriplan_v1');
+    const legacySync = localStorage.getItem('nutriplan_sync_v1');
+    if(legacyData){
+      localStorage.setItem(profileDataKey(name), legacyData);
+      localStorage.removeItem('nutriplan_v1');
+    } else {
+      localStorage.setItem(profileDataKey(name), JSON.stringify(emptyProfileData(db.lang)));
+    }
+    if(legacySync){
+      localStorage.setItem(profileSyncKey(name), legacySync);
+      localStorage.removeItem('nutriplan_sync_v1');
+    }
+  } else if(!localStorage.getItem(profileDataKey(name))){
+    localStorage.setItem(profileDataKey(name), JSON.stringify(emptyProfileData(db.lang)));
+  }
+  profiles.current = name;
+  saveProfiles();
+  loadActiveProfile();
+}
+document.getElementById('profileSelect').addEventListener('change', (e)=>{
+  if(e.target.value==='__new__'){
+    renderProfileSelect();
+    openProfileModal({forced:false});
+  } else {
+    switchProfile(e.target.value);
+  }
+});
+document.getElementById('profileModalClose').addEventListener('click', closeProfileModal);
+document.getElementById('profileModalCancelBtn').addEventListener('click', closeProfileModal);
+document.getElementById('profileModal').addEventListener('click', (e)=>{ if(e.target.id==='profileModal') closeProfileModal(); });
+document.getElementById('profileModalCreateBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('profileNameInput').value.trim();
+  if(!name) return;
+  createProfile(name);
+  closeProfileModalForce();
+});
+function closeProfileModalForce(){
+  document.getElementById('profileModal').dataset.forced = '0';
+  document.getElementById('profileModal').classList.remove('show');
+}
 
 /* ============ i18n HELPERS ============ */
 function t(key){
@@ -728,6 +870,13 @@ function applyStaticStrings(){
   document.getElementById('t-deleteCustomBtn').textContent = t('deleteCustomBtn');
   document.getElementById('t-cancelBtn').textContent = t('cancelBtn');
   document.getElementById('t-saveCustomBtn').textContent = t('saveCustomBtn');
+  document.getElementById('t-profileModalTitle').textContent = t('profileModalTitle');
+  document.getElementById('t-profileNameLabel').textContent = t('profileNameLabel');
+  document.getElementById('profileNameInput').placeholder = t('profileNamePlaceholder');
+  document.getElementById('t-profileCancelBtn').textContent = t('profileCancelBtn');
+  document.getElementById('t-profileCreateBtn').textContent = t('profileCreateBtn');
+  document.getElementById('t-profileModalHint').textContent = profileModalHasLegacy ? t('profileModalHintLegacy') : t('profileModalHint');
+  renderProfileSelect();
   renderWeekSelect();
   renderProducts();
   renderCatalogAccordion();
@@ -1027,7 +1176,7 @@ function switchTab(name){
 /* ============ LANGUAGE ============ */
 document.getElementById('langToggle').addEventListener('click', ()=>{
   db.lang = db.lang==='he' ? 'en' : 'he';
-  saveData();
+  if(profiles.current) saveData();
   applyStaticStrings();
 });
 
@@ -1176,8 +1325,20 @@ document.getElementById('recipeModal').addEventListener('click', (e)=>{
 });
 
 /* ============ INIT ============ */
-applyStaticStrings();
-if(syncConfig.lastSync) updateSyncStatus('synced');
+function initApp(){
+  if(profiles.current && profiles.list.includes(profiles.current)){
+    db = loadData();
+    syncConfig = loadSyncConfig();
+    renderProfileSelect();
+    applyStaticStrings();
+    if(syncConfig.lastSync) updateSyncStatus('synced');
+  } else {
+    renderProfileSelect();
+    applyStaticStrings();
+    openProfileModal({forced:true, hasLegacy: !!localStorage.getItem('nutriplan_v1')});
+  }
+}
+initApp();
 </script>
 </body>
 </html>
