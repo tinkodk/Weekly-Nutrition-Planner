@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>תפריט שבועי מאוזן</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f8f5; --card:#ffffff; --ink:#1f2a24; --muted:#6b7b72;
+    --primary:#2f9e6f; --primary-dark:#227d56; --primary-light:#e3f5ec;
+    --accent:#e8763c; --accent-light:#fdece0;
+    --border:#e3e8e2; --shadow:0 2px 10px rgba(31,42,36,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Heebo',sans-serif;line-height:1.5}
+  html[dir="ltr"] body{font-family:'Heebo','Segoe UI',sans-serif}
+  header{position:sticky;top:0;z-index:50;background:var(--card);border-bottom:1px solid var(--border);box-shadow:var(--shadow)}
+  .header-inner{max-width:1180px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .logo{font-size:28px}
+  .brand h1{font-size:19px;margin:0;font-weight:800}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+  nav.tabs{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:12px}
+  nav.tabs button{border:none;background:transparent;padding:9px 16px;border-radius:9px;font-family:inherit;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s}
+  nav.tabs button.active{background:var(--primary);color:#fff;box-shadow:var(--shadow)}
+  .lang-toggle{border:1px solid var(--border);background:#fff;border-radius:20px;padding:6px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink)}
+  main{max-width:1180px;margin:0 auto;padding:24px 20px 80px}
+  section{display:none}
+  section.active{display:block}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+  h2.section-title{font-size:20px;margin:0 0 4px}
+  .section-sub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:720px){.grid-2{grid-template-columns:1fr}}
+  label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--muted)}
+  select,input[type=text],input[type=search]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-family:inherit;font-size:14px;background:#fbfcfb}
+  select:focus,input:focus{outline:2px solid var(--primary-light);border-color:var(--primary)}
+  .row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+  .row > div{flex:1;min-width:160px}
+  button.btn{border:none;border-radius:9px;padding:10px 18px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:.15s}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-primary:hover{background:var(--primary-dark)}
+  .btn-outline{background:#fff;border:1px solid var(--border);color:var(--ink)}
+  .btn-outline:hover{border-color:var(--primary);color:var(--primary)}
+  .btn-danger-ghost{background:transparent;color:#c14f3a;border:none;cursor:pointer;font-size:16px}
+  .product-list{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:flex;align-items:center;gap:8px;background:var(--primary-light);color:var(--primary-dark);padding:7px 12px;border-radius:20px;font-size:13.5px;font-weight:600}
+  .chip .cat-dot{width:8px;height:8px;border-radius:50%;background:var(--primary)}
+  .empty-hint{color:var(--muted);font-size:13.5px;padding:14px;text-align:center;border:1px dashed var(--border);border-radius:10px;margin-top:14px}
+  .actions-row{display:flex;justify-content:space-between;align-items:center;margin-top:22px;flex-wrap:wrap;gap:10px}
+  .autocomplete-wrap{position:relative}
+  .ac-list{position:absolute;top:100%;inset-inline-start:0;width:100%;background:#fff;border:1px solid var(--border);border-radius:9px;box-shadow:var(--shadow);max-height:220px;overflow:auto;z-index:20;margin-top:4px;display:none}
+  .ac-list.show{display:block}
+  .ac-item{padding:9px 12px;font-size:13.5px;cursor:pointer}
+  .ac-item:hover{background:var(--primary-light)}
+  .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-top:18px}
+  @media (max-width:980px){.week-grid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:560px){.week-grid{grid-template-columns:1fr}}
+  .day-col{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .day-head{background:var(--primary-light);color:var(--primary-dark);font-weight:800;text-align:center;padding:9px;font-size:14px}
+  .meal-slot{padding:10px;border-top:1px solid var(--border);cursor:pointer}
+  .meal-slot:hover{background:#fafcf9}
+  .meal-slot .meal-label{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:700;margin-bottom:3px}
+  .meal-slot .meal-name{font-size:13.5px;font-weight:700;color:var(--ink)}
+  .meal-meta{display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap}
+  .badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px}
+  .badge-time{background:#eef1ee;color:var(--muted)}
+  .badge-missing{background:var(--accent-light);color:var(--accent)}
+  .badge-ready{background:var(--primary-light);color:var(--primary-dark)}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,28,24,.5);z-index:100;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.show{display:flex}
+  .modal{background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:86vh;overflow:auto;padding:26px}
+  .modal-close{float:inline-end;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)}
+  .modal h3{margin:0 0 4px;font-size:20px}
+  .modal .nutrition-line{color:var(--primary-dark);background:var(--primary-light);display:inline-block;padding:5px 12px;border-radius:20px;font-size:12.5px;font-weight:700;margin:8px 0 16px}
+  .modal h4{font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin:18px 0 8px}
+  .ing-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+  .ing-list li{font-size:14px;display:flex;justify-content:space-between;padding:6px 10px;border-radius:8px;background:#fafbfa}
+  .ing-list li.missing{background:var(--accent-light);color:#8a4526}
+  .ing-list li span.tag{font-size:11px;font-weight:700}
+  .ing-list li.owned span.tag{color:var(--primary-dark)}
+  .steps{padding-inline-start:20px;margin:0;font-size:14px}
+  .steps li{margin-bottom:8px}
+  .shopping-list{list-style:none;padding:0;margin:16px 0 0;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  @media (max-width:600px){.shopping-list{grid-template-columns:1fr}}
+  .shopping-list li{display:flex;justify-content:space-between;background:var(--accent-light);color:#8a4526;padding:9px 12px;border-radius:9px;font-size:13.5px;font-weight:600}
+  .shopping-list li b{color:#c14f3a}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="logo">🥗</div>
+      <div>
+        <h1 id="t-appTitle">תפריט שבועי מאוזן</h1>
+        <p id="t-tagline">מהמוצרים שקנית לתפריט שבועי מלא</p>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button data-tab="products" class="active" id="t-navProducts">המוצרים שלי</button>
+      <button data-tab="plan" id="t-navPlan">התפריט השבועי</button>
+      <button data-tab="shopping" id="t-navShopping">רשימת השלמה</button>
+    </nav>
+    <button class="lang-toggle" id="langToggle">English</button>
+  </div>
+</header>
+
+<main>
+  <section id="sec-products" class="active">
+    <div class="card">
+      <h2 class="section-title" id="t-productsTitle">מה קנית השבוע?</h2>
+      <p class="section-sub" id="t-productsSub">בחרי קטגוריה ומוצר מהרשימה, או הקלידי טקסט חופשי — כל מה שתוסיפי ישמש לבניית התפריט.</p>
+
+      <div class="grid-2">
+        <div>
+          <div class="row">
+            <div>
+              <label id="t-catLabel">קטגוריה</label>
+              <select id="catSelect"></select>
+            </div>
+            <div class="autocomplete-wrap">
+              <label id="t-productLabel">מוצר</label>
+              <input type="text" id="productInput" autocomplete="off">
+              <div class="ac-list" id="acList"></div>
+            </div>
+            <div style="flex:0 0 auto">
+              <button class="btn btn-primary" id="addProductBtn">+</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label id="t-freeTextLabel">הוספה מהירה (טקסט חופשי, מופרד בפסיקים)</label>
+          <div class="row">
+            <div><input type="text" id="freeTextInput" placeholder="לדוגמה: אבוקדו, לחם שיפון, זעתר"></div>
+            <div style="flex:0 0 auto"><button class="btn btn-outline" id="addFreeTextBtn">הוסיפי</button></div>
+          </div>
+        </div>
+      </div>
+
+      <ul class="product-list" id="productList"></ul>
+      <p class="empty-hint" id="emptyProductsHint" style="display:none"></p>
+
+      <div class="actions-row">
+        <span class="section-sub" style="margin:0" id="productCountHint"></span>
+        <button class="btn btn-primary" id="generateBtn" style="font-size:15px;padding:12px 24px">בנו לי תפריט שבועי</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-plan">
+    <div class="card">
+      <h2 class="section-title" id="t-planTitle">התפריט השבועי שלך</h2>
+      <p class="section-sub" id="t-planSub">לחצי על כל ארוחה כדי לראות מתכון מלא. ארוחות עם רכיבים חסרים מסומנות בכתום.</p>
+      <div id="planEmptyHint" class="empty-hint"></div>
+      <div class="week-grid" id="weekGrid"></div>
+      <div class="actions-row" id="regenerateRow" style="display:none">
+        <span></span>
+        <button class="btn btn-outline" id="regenerateBtn"></button>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-shopping">
+    <div class="card">
+      <h2 class="section-title" id="t-shoppingTitle">רשימת קניות משלימה</h2>
+      <p class="section-sub" id="t-shoppingSub">המוצרים האלה חסרים לך כדי להשלים את כל המתכונים בתפריט השבועי.</p>
+      <div id="shoppingEmptyHint" class="empty-hint"></div>
+      <ul class="shopping-list" id="shoppingList"></ul>
+    </div>
+  </section>
+</main>
+
+<div class="modal-overlay" id="recipeModal">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">&times;</button>
+    <h3 id="modalTitle"></h3>
+    <div class="nutrition-line" id="modalNutrition"></div>
+    <h4 id="t-ingredientsLabel">רכיבים</h4>
+    <ul class="ing-list" id="modalIngredients"></ul>
+    <h4 id="t-instructionsLabel">אופן ההכנה</h4>
+    <ol class="steps" id="modalSteps"></ol>
+  </div>
+</div>
+
+<footer id="t-footer">נשמר אוטומטית בדפדפן הזה • הנתונים חיים גם ב-Git לגיבוי ולשיתוף בין מחשבים</footer>
+
+<script>
+/* ============ DATA ============ */
+const CATEGORIES = {
+  protein:{he:'חלבון',en:'Protein'},
+  dairy:{he:'מוצרי חלב',en:'Dairy'},
+  grain:{he:'דגנים',en:'Grains'},
+  legume:{he:'קטניות',en:'Legumes'},
+  veg:{he:'ירקות',en:'Vegetables'},
+  fruit:{he:'פירות',en:'Fruit'},
+  fat:{he:'שומן בריא',en:'Healthy Fat'},
+  sweet:{he:'ממתיק',en:'Sweetener'},
+  other:{he:'אחר',en:'Other'}
+};
+
+const PRODUCTS = [
+  {id:'eggs',he:'ביצים',en:'Eggs',cat:'protein'},
+  {id:'chicken_breast',he:'חזה עוף',en:'Chicken Breast',cat:'protein'},
+  {id:'tuna_can',he:'טונה בקופסה',en:'Canned Tuna',cat:'protein'},
+  {id:'cottage_cheese',he:"קוטג'",en:'Cottage Cheese',cat:'dairy'},
+  {id:'white_cheese',he:'גבינה לבנה',en:'White Cheese',cat:'dairy'},
+  {id:'yogurt',he:'יוגורט',en:'Yogurt',cat:'dairy'},
+  {id:'milk',he:'חלב',en:'Milk',cat:'dairy'},
+  {id:'whole_bread',he:'לחם מלא',en:'Whole Wheat Bread',cat:'grain'},
+  {id:'pita',he:'פיתה מלאה',en:'Whole Pita',cat:'grain'},
+  {id:'rice',he:'אורז מלא',en:'Brown Rice',cat:'grain'},
+  {id:'pasta',he:'פסטה מלאה',en:'Whole Wheat Pasta',cat:'grain'},
+  {id:'quinoa',he:'קינואה',en:'Quinoa',cat:'grain'},
+  {id:'oats',he:'שיבולת שועל',en:'Oats',cat:'grain'},
+  {id:'granola',he:'גרנולה',en:'Granola',cat:'grain'},
+  {id:'lentils',he:'עדשים',en:'Lentils',cat:'legume'},
+  {id:'chickpeas',he:'חומוס יבש/מבושל',en:'Chickpeas',cat:'legume'},
+  {id:'black_beans',he:'שעועית שחורה',en:'Black Beans',cat:'legume'},
+  {id:'tofu',he:'טופו',en:'Tofu',cat:'protein'},
+  {id:'ground_beef',he:'בשר טחון',en:'Ground Beef',cat:'protein'},
+  {id:'salmon',he:'פילה סלמון',en:'Salmon Fillet',cat:'protein'},
+  {id:'almonds',he:'שקדים',en:'Almonds',cat:'fat'},
+  {id:'walnuts',he:'אגוזי מלך',en:'Walnuts',cat:'fat'},
+  {id:'avocado',he:'אבוקדו',en:'Avocado',cat:'fat'},
+  {id:'olive_oil',he:'שמן זית',en:'Olive Oil',cat:'fat'},
+  {id:'tahini',he:'טחינה גולמית',en:'Raw Tahini',cat:'fat'},
+  {id:'peanut_butter',he:'חמאת בוטנים',en:'Peanut Butter',cat:'fat'},
+  {id:'tomato',he:'עגבניה',en:'Tomato',cat:'veg'},
+  {id:'cherry_tomato',he:'עגבניות שרי',en:'Cherry Tomatoes',cat:'veg'},
+  {id:'cucumber',he:'מלפפון',en:'Cucumber',cat:'veg'},
+  {id:'pepper',he:'פלפל',en:'Bell Pepper',cat:'veg'},
+  {id:'onion',he:'בצל',en:'Onion',cat:'veg'},
+  {id:'garlic',he:'שום',en:'Garlic',cat:'veg'},
+  {id:'carrot',he:'גזר',en:'Carrot',cat:'veg'},
+  {id:'zucchini',he:'קישוא',en:'Zucchini',cat:'veg'},
+  {id:'mushroom',he:'פטריות',en:'Mushrooms',cat:'veg'},
+  {id:'spinach',he:'תרד',en:'Spinach',cat:'veg'},
+  {id:'lettuce',he:'חסה',en:'Lettuce',cat:'veg'},
+  {id:'corn',he:'תירס',en:'Corn',cat:'veg'},
+  {id:'potato',he:'תפוח אדמה',en:'Potato',cat:'carb'},
+  {id:'sweet_potato',he:'בטטה',en:'Sweet Potato',cat:'carb'},
+  {id:'banana',he:'בננה',en:'Banana',cat:'fruit'},
+  {id:'apple',he:'תפוח עץ',en:'Apple',cat:'fruit'},
+  {id:'strawberry',he:'תותים',en:'Strawberries',cat:'fruit'},
+  {id:'lemon',he:'לימון',en:'Lemon',cat:'fruit'},
+  {id:'yellow_cheese',he:'גבינה צהובה',en:'Yellow Cheese',cat:'dairy'},
+  {id:'feta_cheese',he:'גבינה בולגרית',en:'Feta Cheese',cat:'dairy'},
+  {id:'honey',he:'דבש',en:'Honey',cat:'sweet'}
+];
+const PRODUCT_MAP = Object.fromEntries(PRODUCTS.map(p=>[p.id,p]));
+
+function ing(id,qtyHe,qtyEn){return {id,qty:{he:qtyHe,en:qtyEn}};}
+
+const RECIPES = [
+// ---- BREAKFAST ----
+{id:'b1',mealType:'breakfast',prepMin:10,name:{he:'חביתת ירקות',en:'Veggie Omelette'},
+ ingredients:[ing('eggs','2 יחידות','2'),ing('tomato','1 יחידה','1'),ing('pepper','חצי','half'),ing('onion','רבע','quarter'),ing('olive_oil','כף','1 tbsp'),ing('whole_bread','2 פרוסות','2 slices')],
+ instructions:{he:['קוצצים את הירקות לקוביות קטנות.','מטגנים את הבצל והפלפל בשמן זית 3 דקות.','טורפים את הביצים, מוסיפים לירקות עם העגבניה ומבשלים 5 דקות עד שהחביתה נקרשת.','מגישים עם פרוסות לחם מלא.'],
+              en:['Dice the vegetables finely.','Sauté onion and pepper in olive oil for 3 minutes.','Beat the eggs, add to the pan with tomato, cook 5 minutes until set.','Serve with whole wheat bread.']},
+ nutrition:{he:'כ-350–420 קלוריות · כ-20 גרם חלבון',en:'~350–420 kcal · ~20g protein'}},
+{id:'b2',mealType:'breakfast',prepMin:15,name:{he:'שקשוקה מהירה',en:'Quick Shakshuka'},
+ ingredients:[ing('eggs','2 יחידות','2'),ing('tomato','2 יחידות','2'),ing('pepper','1 יחידה','1'),ing('onion','חצי','half'),ing('garlic','2 שיניים','2 cloves'),ing('pita','1 יחידה','1')],
+ instructions:{he:['מטגנים בצל, פלפל ושום עד להזהבה.','מוסיפים עגבניות קצוצות ומבשלים 8 דקות עד שנוצר רוטב.','שוברים את הביצים לתוך הרוטב ומכסים עד שמתקשות כרצונכם.','מגישים עם פיתה חמה.'],
+              en:['Sauté onion, pepper and garlic until golden.','Add chopped tomatoes, cook 8 minutes into a sauce.','Crack eggs into the sauce, cover until set to your liking.','Serve with warm pita.']},
+ nutrition:{he:'כ-320–400 קלוריות · כ-18 גרם חלבון',en:'~320–400 kcal · ~18g protein'}},
+{id:'b3',mealType:'breakfast',prepMin:5,name:{he:'קערת יוגורט וגרנולה',en:'Yogurt Granola Bowl'},
+ ingredients:[ing('yogurt','1 קופסה','1 tub'),ing('granola','חצי כוס','1/2 cup'),ing('banana','1 יחידה','1'),ing('honey','כפית','1 tsp')],
+ instructions:{he:['פורסים את הבננה.','מניחים את היוגורט בקערה, מפזרים גרנולה ובננה.','מוסיפים דבש לפי הטעם.'],
+              en:['Slice the banana.','Put yogurt in a bowl, top with granola and banana.','Drizzle honey to taste.']},
+ nutrition:{he:'כ-380–450 קלוריות · כ-15 גרם חלבון',en:'~380–450 kcal · ~15g protein'}},
+{id:'b4',mealType:'breakfast',prepMin:8,name:{he:'קוואקר עם בננה ואגוזים',en:'Oats with Banana & Walnuts'},
+ ingredients:[ing('oats','חצי כוס','1/2 cup'),ing('milk','כוס','1 cup'),ing('banana','1 יחידה','1'),ing('walnuts','חופן','handful'),ing('honey','כפית','1 tsp')],
+ instructions:{he:['מבשלים שיבולת שועל בחלב על אש נמוכה 5 דקות תוך ערבוב.','פורסים בננה ומוסיפים מעל.','מפזרים אגוזי מלך קצוצים ומוסיפים דבש.'],
+              en:['Cook oats in milk over low heat 5 minutes, stirring.','Slice banana on top.','Sprinkle chopped walnuts and drizzle honey.']},
+ nutrition:{he:'כ-400–480 קלוריות · כ-14 גרם חלבון',en:'~400–480 kcal · ~14g protein'}},
+{id:'b5',mealType:'breakfast',prepMin:10,name:{he:'טוסט אבוקדו וביצה',en:'Avocado Toast with Egg'},
+ ingredients:[ing('whole_bread','2 פרוסות','2 slices'),ing('avocado','חצי','half'),ing('eggs','1 יחידה','1'),ing('lemon','סחיטה','squeeze')],
+ instructions:{he:['קולים את הלחם.','מועכים את האבוקדו עם מיץ לימון ומורחים על הטוסט.','מטגנים או מקשיחים ביצה ומניחים מעל.'],
+              en:['Toast the bread.','Mash avocado with lemon juice, spread on toast.','Fry or boil the egg and place on top.']},
+ nutrition:{he:'כ-380–440 קלוריות · כ-16 גרם חלבון',en:'~380–440 kcal · ~16g protein'}},
+{id:'b6',mealType:'breakfast',prepMin:5,name:{he:'כריך גבינה וירקות',en:'Cheese & Veggie Sandwich'},
+ ingredients:[ing('whole_bread','2 פרוסות','2 slices'),ing('yellow_cheese','פרוסה','1 slice'),ing('tomato','1 יחידה','1'),ing('cucumber','1 יחידה','1')],
+ instructions:{he:['פורסים את הירקות.','בונים כריך עם הגבינה והירקות.'],
+              en:['Slice the vegetables.','Build the sandwich with cheese and vegetables.']},
+ nutrition:{he:'כ-320–380 קלוריות · כ-15 גרם חלבון',en:'~320–380 kcal · ~15g protein'}},
+{id:'b7',mealType:'breakfast',prepMin:5,name:{he:"קוטג' עם ירקות ולחם",en:'Cottage Cheese with Chopped Veggies'},
+ ingredients:[ing('cottage_cheese','קופסה','1 tub'),ing('tomato','1 יחידה','1'),ing('cucumber','1 יחידה','1'),ing('pepper','חצי','half'),ing('whole_bread','2 פרוסות','2 slices')],
+ instructions:{he:['קוצצים את כל הירקות לקוביות קטנות.','מערבבים עם הקוטג׳.','מגישים עם לחם מלא.'],
+              en:['Dice all vegetables finely.','Mix with cottage cheese.','Serve with whole wheat bread.']},
+ nutrition:{he:'כ-300–360 קלוריות · כ-22 גרם חלבון',en:'~300–360 kcal · ~22g protein'}},
+{id:'b8',mealType:'breakfast',prepMin:15,name:{he:'פנקייק שיבולת שועל',en:'Oat Pancakes'},
+ ingredients:[ing('oats','כוס','1 cup'),ing('eggs','2 יחידות','2'),ing('milk','חצי כוס','1/2 cup'),ing('banana','1 יחידה','1'),ing('honey','כף','1 tbsp')],
+ instructions:{he:['טוחנים שיבולת שועל לקמח גס (או משתמשים כמות שהוא).','מערבבים עם ביצים, חלב ובננה מרוסקת לבלילה.','אופים על מחבת משני הצדדים עד להזהבה.','מגישים עם דבש.'],
+              en:['Blend oats into a coarse flour (or use as-is).','Mix with eggs, milk and mashed banana into a batter.','Cook on a pan both sides until golden.','Serve with honey.']},
+ nutrition:{he:'כ-420–500 קלוריות · כ-18 גרם חלבון',en:'~420–500 kcal · ~18g protein'}},
+
+// ---- LUNCH ----
+{id:'l1',mealType:'lunch',prepMin:20,name:{he:'סלט קינואה עם עוף',en:'Quinoa Chicken Salad'},
+ ingredients:[ing('quinoa','כוס מבושלת','1 cup cooked'),ing('chicken_breast','150 גרם','150g'),ing('cucumber','1 יחידה','1'),ing('tomato','1 יחידה','1'),ing('olive_oil','כף','1 tbsp'),ing('lemon','סחיטה','squeeze')],
+ instructions:{he:['מבשלים קינואה לפי ההוראות על האריזה.','צולים את חזה העוף במחבת עם מעט שמן, כ-6 דקות לכל צד, וחותכים לרצועות.','קוצצים ירקות ומערבבים הכל עם שמן זית ולימון.'],
+              en:['Cook quinoa per package instructions.','Pan-sear chicken breast, ~6 minutes per side, slice into strips.','Chop vegetables and toss everything with olive oil and lemon.']},
+ nutrition:{he:'כ-480–550 קלוריות · כ-38 גרם חלבון',en:'~480–550 kcal · ~38g protein'}},
+{id:'l2',mealType:'lunch',prepMin:20,name:{he:'פסטה עם עדשים ועגבניות',en:'Pasta with Lentils & Tomato'},
+ ingredients:[ing('pasta','100 גרם','100g'),ing('lentils','חצי כוס מבושלת','1/2 cup cooked'),ing('tomato','2 יחידות','2'),ing('garlic','2 שיניים','2 cloves'),ing('onion','חצי','half'),ing('olive_oil','כף','1 tbsp')],
+ instructions:{he:['מבשלים את הפסטה במים רותחים לפי ההוראות.','מטגנים בצל ושום, מוסיפים עגבניות קצוצות ומבשלים לרוטב.','מוסיפים עדשים מבושלות, מערבבים עם הפסטה.'],
+              en:['Boil the pasta per package instructions.','Sauté onion and garlic, add chopped tomatoes, simmer into a sauce.','Add cooked lentils, toss with the pasta.']},
+ nutrition:{he:'כ-520–580 קלוריות · כ-22 גרם חלבון',en:'~520–580 kcal · ~22g protein'}},
+{id:'l3',mealType:'lunch',prepMin:25,name:{he:'אורז עם עוף וירקות מוקפצים',en:'Rice with Stir-Fried Chicken & Veggies'},
+ ingredients:[ing('rice','כוס מבושל','1 cup cooked'),ing('chicken_breast','150 גרם','150g'),ing('pepper','1 יחידה','1'),ing('zucchini','1 יחידה','1'),ing('carrot','1 יחידה','1'),ing('onion','חצי','half'),ing('olive_oil','כף','1 tbsp')],
+ instructions:{he:['מבשלים אורז לפי ההוראות.','חותכים עוף לקוביות ומטגנים במחבת חמה עד השחמה.','מוסיפים ירקות פרוסים ומקפיצים 5 דקות.','מגישים מעל האורז.'],
+              en:['Cook rice per instructions.','Cube chicken and pan-fry until browned.','Add sliced vegetables, stir-fry 5 minutes.','Serve over the rice.']},
+ nutrition:{he:'כ-500–570 קלוריות · כ-36 גרם חלבון',en:'~500–570 kcal · ~36g protein'}},
+{id:'l4',mealType:'lunch',prepMin:12,name:{he:'סלט חומוס גדול',en:'Big Chickpea Salad'},
+ ingredients:[ing('chickpeas','כוס מבושלת','1 cup cooked'),ing('cucumber','1 יחידה','1'),ing('tomato','1 יחידה','1'),ing('feta_cheese','50 גרם','50g'),ing('olive_oil','כף','1 tbsp'),ing('lemon','סחיטה','squeeze'),ing('pita','1 יחידה','1')],
+ instructions:{he:['קוצצים ירקות לקוביות.','מערבבים עם חומוס מבושל, גבינה בולגרית מפוררת, שמן זית ולימון.','מגישים עם פיתה.'],
+              en:['Dice the vegetables.','Toss with cooked chickpeas, crumbled feta, olive oil and lemon.','Serve with pita.']},
+ nutrition:{he:'כ-460–520 קלוריות · כ-20 גרם חלבון',en:'~460–520 kcal · ~20g protein'}},
+{id:'l5',mealType:'lunch',prepMin:25,name:{he:'טונה עם בטטה אפויה',en:'Tuna with Baked Sweet Potato'},
+ ingredients:[ing('tuna_can','1 קופסה','1 can'),ing('sweet_potato','1 יחידה','1'),ing('lettuce','כמה עלים','a few leaves'),ing('cucumber','1 יחידה','1'),ing('olive_oil','כף','1 tbsp')],
+ instructions:{he:['אופים את הבטטה בתנור/מיקרוגל עד שרכה (כ-20 דקות בתנור, 8 במיקרו).','מסננים את הטונה ומערבבים עם שמן זית.','מגישים עם סלט עלים ומלפפון.'],
+              en:['Bake the sweet potato until soft (~20 min oven, 8 min microwave).','Drain the tuna, toss with olive oil.','Serve with a leafy salad and cucumber.']},
+ nutrition:{he:'כ-420–480 קלוריות · כ-30 גרם חלבון',en:'~420–480 kcal · ~30g protein'}},
+{id:'l6',mealType:'lunch',prepMin:25,name:{he:'פיתה עם קציצות חומוס וסלט',en:'Pita with Chickpea Patties & Salad'},
+ ingredients:[ing('chickpeas','כוס מבושלת','1 cup cooked'),ing('pita','1 יחידה','1'),ing('tomato','1 יחידה','1'),ing('cucumber','1 יחידה','1'),ing('tahini','כף','1 tbsp'),ing('onion','רבע','quarter')],
+ instructions:{he:['מועכים את החומוס עם בצל קצוץ ותבלינים, מעצבים קציקות ומטגנים/אופים עד להזהבה.','קוצצים סלט עגבניה ומלפפון.','ממלאים פיתה בקציצות, סלט וטחינה.'],
+              en:['Mash chickpeas with chopped onion and spices, shape patties, pan-fry or bake until golden.','Chop a tomato-cucumber salad.','Fill the pita with patties, salad and tahini.']},
+ nutrition:{he:'כ-500–560 קלוריות · כ-19 גרם חלבון',en:'~500–560 kcal · ~19g protein'}},
+{id:'l7',mealType:'lunch',prepMin:20,name:{he:'טופו מוקפץ עם אורז',en:'Stir-Fried Tofu with Rice'},
+ ingredients:[ing('tofu','200 גרם','200g'),ing('rice','כוס מבושל','1 cup cooked'),ing('pepper','1 יחידה','1'),ing('carrot','1 יחידה','1'),ing('zucchini','1 יחידה','1'),ing('garlic','2 שיניים','2 cloves'),ing('olive_oil','כף','1 tbsp')],
+ instructions:{he:['חותכים טופו לקוביות ומטגנים עד להשחמה קלה.','מוסיפים ירקות פרוסים ושום, מקפיצים 6 דקות.','מגישים מעל אורז.'],
+              en:['Cube the tofu and pan-fry until lightly browned.','Add sliced vegetables and garlic, stir-fry 6 minutes.','Serve over rice.']},
+ nutrition:{he:'כ-440–500 קלוריות · כ-24 גרם חלבון',en:'~440–500 kcal · ~24g protein'}},
+{id:'l8',mealType:'lunch',prepMin:20,name:{he:'סלט עדשים חם',en:'Warm Lentil Salad'},
+ ingredients:[ing('lentils','כוס מבושלת','1 cup cooked'),ing('carrot','1 יחידה','1'),ing('onion','חצי','half'),ing('tomato','1 יחידה','1'),ing('olive_oil','כף','1 tbsp'),ing('lemon','סחיטה','squeeze')],
+ instructions:{he:['מבשלים עדשים עד לריכוך (או משתמשים בעדשים מבושלות מוכנות).','מטגנים בצל וגזר קצוצים.','מערבבים הכל עם עגבניה, שמן זית ולימון.'],
+              en:['Cook lentils until tender (or use pre-cooked lentils).','Sauté chopped onion and carrot.','Toss everything with tomato, olive oil and lemon.']},
+ nutrition:{he:'כ-380–440 קלוריות · כ-20 גרם חלבון',en:'~380–440 kcal · ~20g protein'}},
+
+// ---- DINNER ----
+{id:'d1',mealType:'dinner',prepMin:25,name:{he:'סלמון בתנור עם ירקות',en:'Baked Salmon with Roasted Veggies'},
+ ingredients:[ing('salmon','150 גרם','150g'),ing('zucchini','1 יחידה','1'),ing('carrot','1 יחידה','1'),ing('pepper','1 יחידה','1'),ing('olive_oil','כף','1 tbsp'),ing('lemon','פרוסות','slices')],
+ instructions:{he:['מחממים תנור ל-200 מעלות.','מניחים סלמון וירקות פרוסים על תבנית, מזליפים שמן זית ולימון.','אופים כ-18 דקות.'],
+              en:['Preheat oven to 200°C.','Place salmon and sliced vegetables on a tray, drizzle olive oil and lemon.','Bake ~18 minutes.']},
+ nutrition:{he:'כ-460–520 קלוריות · כ-35 גרם חלבון',en:'~460–520 kcal · ~35g protein'}},
+{id:'d2',mealType:'dinner',prepMin:25,name:{he:'פסטה ברוטב עגבניות ובשר טחון',en:'Pasta with Meat Tomato Sauce'},
+ ingredients:[ing('pasta','100 גרם','100g'),ing('ground_beef','150 גרם','150g'),ing('tomato','2 יחידות','2'),ing('onion','חצי','half'),ing('garlic','2 שיניים','2 cloves')],
+ instructions:{he:['מבשלים פסטה לפי ההוראות.','מטגנים בצל ושום, מוסיפים בשר טחון ומשחימים.','מוסיפים עגבניות קצוצות ומבשלים 10 דקות לרוטב.','מערבבים עם הפסטה.'],
+              en:['Cook pasta per instructions.','Sauté onion and garlic, add ground beef, brown well.','Add chopped tomatoes, simmer 10 minutes into a sauce.','Toss with the pasta.']},
+ nutrition:{he:'כ-560–630 קלוריות · כ-34 גרם חלבון',en:'~560–630 kcal · ~34g protein'}},
+{id:'d3',mealType:'dinner',prepMin:30,name:{he:'מרק עדשים',en:'Lentil Soup'},
+ ingredients:[ing('lentils','כוס יבשה','1 cup dry'),ing('carrot','1 יחידה','1'),ing('onion','1 יחידה','1'),ing('garlic','2 שיניים','2 cloves'),ing('potato','1 יחידה','1')],
+ instructions:{he:['מטגנים בצל, גזר ושום בסיר.','מוסיפים עדשים, תפוח אדמה קצוץ ומים לכיסוי.','מבשלים כ-25 דקות עד שהעדשים רכות, טוחנים חלקית לפי הטעם.'],
+              en:['Sauté onion, carrot and garlic in a pot.','Add lentils, diced potato and water to cover.','Simmer ~25 minutes until lentils are soft; partially blend to taste.']},
+ nutrition:{he:'כ-380–440 קלוריות · כ-22 גרם חלבון',en:'~380–440 kcal · ~22g protein'}},
+{id:'d4',mealType:'dinner',prepMin:20,name:{he:'שקשוקת ירקות עם ביצה',en:'Vegetable Shakshuka with Egg'},
+ ingredients:[ing('eggs','2 יחידות','2'),ing('tomato','2 יחידות','2'),ing('pepper','1 יחידה','1'),ing('onion','חצי','half'),ing('zucchini','1 יחידה','1'),ing('pita','1 יחידה','1')],
+ instructions:{he:['מטגנים בצל, פלפל וקישוא.','מוסיפים עגבניות קצוצות ומבשלים לרוטב סמיך.','שוברים ביצים לתוך הרוטב ומכסים עד שמתקשות.'],
+              en:['Sauté onion, pepper and zucchini.','Add chopped tomatoes, simmer to a thick sauce.','Crack eggs into the sauce, cover until set.']},
+ nutrition:{he:'כ-340–400 קלוריות · כ-18 גרם חלבון',en:'~340–400 kcal · ~18g protein'}},
+{id:'d5',mealType:'dinner',prepMin:20,name:{he:'אורז עם שעועית שחורה ותירס',en:'Rice with Black Beans & Corn'},
+ ingredients:[ing('rice','כוס מבושל','1 cup cooked'),ing('black_beans','חצי כוס מבושלת','1/2 cup cooked'),ing('corn','חצי כוס','1/2 cup'),ing('pepper','1 יחידה','1'),ing('onion','חצי','half'),ing('avocado','חצי','half')],
+ instructions:{he:['מבשלים אורז לפי ההוראות.','מטגנים בצל ופלפל, מוסיפים שעועית ותירס ומחממים.','מגישים מעל האורז עם פרוסות אבוקדו.'],
+              en:['Cook rice per instructions.','Sauté onion and pepper, add beans and corn, heat through.','Serve over rice with avocado slices.']},
+ nutrition:{he:'כ-480–540 קלוריות · כ-16 גרם חלבון',en:'~480–540 kcal · ~16g protein'}},
+{id:'d6',mealType:'dinner',prepMin:35,name:{he:'עוף בתנור עם תפוחי אדמה',en:'Baked Chicken with Potatoes'},
+ ingredients:[ing('chicken_breast','200 גרם','200g'),ing('potato','2 יחידות','2'),ing('carrot','1 יחידה','1'),ing('olive_oil','כף','1 tbsp'),ing('garlic','2 שיניים','2 cloves')],
+ instructions:{he:['מחממים תנור ל-200 מעלות.','חותכים תפוחי אדמה וגזר לקוביות, מניחים על תבנית עם העוף, שמן זית ושום.','אופים כ-30 דקות עד שמוכן.'],
+              en:['Preheat oven to 200°C.','Cube potatoes and carrot, place on a tray with chicken, olive oil and garlic.','Bake ~30 minutes until done.']},
+ nutrition:{he:'כ-520–580 קלוריות · כ-40 גרם חלבון',en:'~520–580 kcal · ~40g protein'}},
+{id:'d7',mealType:'dinner',prepMin:20,name:{he:'פטריות ותרד ברוטב קוטג׳ עם פסטה',en:'Mushroom Spinach Cottage Sauce with Pasta'},
+ ingredients:[ing('pasta','100 גרם','100g'),ing('mushroom','200 גרם','200g'),ing('spinach','2 כוסות','2 cups'),ing('cottage_cheese','קופסה','1 tub'),ing('garlic','2 שיניים','2 cloves')],
+ instructions:{he:['מבשלים פסטה לפי ההוראות.','מטגנים פטריות ושום, מוסיפים תרד עד שנובל.','מכבים אש, מערבבים פנימה קוטג׳ ליצירת רוטב קרמי, מוסיפים לפסטה.'],
+              en:['Cook pasta per instructions.','Sauté mushrooms and garlic, add spinach until wilted.','Off heat, stir in cottage cheese for a creamy sauce, toss with pasta.']},
+ nutrition:{he:'כ-460–520 קלוריות · כ-26 גרם חלבון',en:'~460–520 kcal · ~26g protein'}},
+{id:'d8',mealType:'dinner',prepMin:20,name:{he:'קציצות טונה עם סלט',en:'Tuna Patties with Salad'},
+ ingredients:[ing('tuna_can','2 קופסאות','2 cans'),ing('eggs','1 יחידה','1'),ing('whole_bread','פרוסה מפוררת','1 slice, crumbled'),ing('lettuce','כמה עלים','a few leaves'),ing('cucumber','1 יחידה','1'),ing('lemon','סחיטה','squeeze')],
+ instructions:{he:['מערבבים טונה מסוננת, ביצה ולחם מפורר לתערובת אחידה.','מעצבים קציצות ומטגנים כ-3 דקות לכל צד.','מגישים עם סלט עלים ולימון.'],
+              en:['Mix drained tuna, egg and crumbled bread into a uniform mixture.','Shape patties, pan-fry ~3 minutes per side.','Serve with a leafy salad and lemon.']},
+ nutrition:{he:'כ-380–440 קלוריות · כ-36 גרם חלבון',en:'~380–440 kcal · ~36g protein'}},
+
+// ---- SNACKS ----
+{id:'s1',mealType:'snack',prepMin:1,name:{he:'פרי וחופן שקדים',en:'Fruit & Handful of Almonds'},
+ ingredients:[ing('apple','1 יחידה','1'),ing('almonds','חופן','handful')],
+ instructions:{he:['אוכלים יחד — אין צורך בהכנה.'],en:['Eat together — no prep needed.']},
+ nutrition:{he:'כ-200–250 קלוריות',en:'~200–250 kcal'}},
+{id:'s2',mealType:'snack',prepMin:1,name:{he:'יוגורט עם דבש',en:'Yogurt with Honey'},
+ ingredients:[ing('yogurt','1 קופסה','1 tub'),ing('honey','כפית','1 tsp')],
+ instructions:{he:['מערבבים דבש ביוגורט.'],en:['Stir honey into the yogurt.']},
+ nutrition:{he:'כ-150–200 קלוריות · כ-10 גרם חלבון',en:'~150–200 kcal · ~10g protein'}},
+{id:'s3',mealType:'snack',prepMin:8,name:{he:'חומוס עם מקלות ירקות',en:'Chickpea Dip with Veggie Sticks'},
+ ingredients:[ing('chickpeas','חצי כוס מבושלת','1/2 cup cooked'),ing('tahini','כף','1 tbsp'),ing('carrot','1 יחידה','1'),ing('cucumber','1 יחידה','1')],
+ instructions:{he:['מועכים את החומוס עם הטחינה למרקם חלק (אפשר עם מעט מים).','חותכים גזר ומלפפון למקלות וטובלים.'],
+              en:['Mash the chickpeas with tahini into a smooth dip (add a splash of water if needed).','Cut carrot and cucumber into sticks and dip.']},
+ nutrition:{he:'כ-220–270 קלוריות · כ-9 גרם חלבון',en:'~220–270 kcal · ~9g protein'}},
+{id:'s4',mealType:'snack',prepMin:3,name:{he:'טוסט חמאת בוטנים ובננה',en:'Peanut Butter Banana Toast'},
+ ingredients:[ing('whole_bread','1 פרוסה','1 slice'),ing('peanut_butter','כף','1 tbsp'),ing('banana','חצי','half')],
+ instructions:{he:['קולים את הלחם, מורחים חמאת בוטנים ומניחים פרוסות בננה מעל.'],
+              en:['Toast the bread, spread peanut butter and top with banana slices.']},
+ nutrition:{he:'כ-250–300 קלוריות · כ-8 גרם חלבון',en:'~250–300 kcal · ~8g protein'}},
+{id:'s5',mealType:'snack',prepMin:2,name:{he:"קוטג' עם עגבניות שרי",en:'Cottage Cheese with Cherry Tomatoes'},
+ ingredients:[ing('cottage_cheese','חצי קופסה','1/2 tub'),ing('cherry_tomato','חופן','handful')],
+ instructions:{he:['חוצים את העגבניות ומערבבים עם הקוטג׳.'],en:['Halve the tomatoes and mix with cottage cheese.']},
+ nutrition:{he:'כ-140–180 קלוריות · כ-14 גרם חלבון',en:'~140–180 kcal · ~14g protein'}},
+{id:'s6',mealType:'snack',prepMin:1,name:{he:'גרנולה עם חלב',en:'Granola with Milk'},
+ ingredients:[ing('granola','חצי כוס','1/2 cup'),ing('milk','כוס','1 cup')],
+ instructions:{he:['שופכים חלב על הגרנולה.'],en:['Pour milk over the granola.']},
+ nutrition:{he:'כ-250–300 קלוריות · כ-9 גרם חלבון',en:'~250–300 kcal · ~9g protein'}}
+];
+
+const MEAL_TYPES = ['breakfast','lunch','dinner','snack'];
+const DAY_NAMES = {he:['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'],en:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']};
+
+const STRINGS = {
+  appTitle:{he:'תפריט שבועי מאוזן',en:'Balanced Weekly Menu'},
+  tagline:{he:'מהמוצרים שקנית לתפריט שבועי מלא',en:'From what you bought to a full weekly menu'},
+  navProducts:{he:'המוצרים שלי',en:'My Products'},
+  navPlan:{he:'התפריט השבועי',en:'Weekly Plan'},
+  navShopping:{he:'רשימת השלמה',en:'Shopping List'},
+  langBtn:{he:'English',en:'עברית'},
+  productsTitle:{he:'מה קנית השבוע?',en:'What did you buy this week?'},
+  productsSub:{he:'בחרי קטגוריה ומוצר מהרשימה, או הקלידי טקסט חופשי — כל מה שתוסיפי ישמש לבניית התפריט.',en:'Pick a category and product from the list, or type free text — everything you add is used to build the menu.'},
+  catLabel:{he:'קטגוריה',en:'Category'},
+  productLabel:{he:'מוצר',en:'Product'},
+  freeTextLabel:{he:'הוספה מהירה (טקסט חופשי, מופרד בפסיקים)',en:'Quick add (free text, comma-separated)'},
+  freeTextPlaceholder:{he:'לדוגמה: אבוקדו, לחם שיפון, זעתר',en:'e.g. avocado, rye bread, za\'atar'},
+  quickAddBtn:{he:'הוסיפי',en:'Add'},
+  generateBtn:{he:'בנו לי תפריט שבועי',en:'Build My Weekly Menu'},
+  emptyProducts:{he:'עדיין לא הוספת מוצרים. הוסיפי כמה מוצרים כדי להתחיל.',en:'No products added yet. Add a few to get started.'},
+  productCountHint:{he:n=>`${n} מוצרים ברשימה`,en:n=>`${n} products in your list`},
+  planTitle:{he:'התפריט השבועי שלך',en:'Your Weekly Plan'},
+  planSub:{he:'לחצי על כל ארוחה כדי לראות מתכון מלא. ארוחות עם רכיבים חסרים מסומנות בכתום.',en:'Click any meal to see the full recipe. Meals with missing ingredients are marked in orange.'},
+  planEmpty:{he:'עוד לא נבנה תפריט. עברי ללשונית "המוצרים שלי" והוסיפי מוצרים כדי לבנות תפריט שבועי.',en:'No plan built yet. Go to "My Products" and add items to generate a weekly menu.'},
+  regenerateBtn:{he:'בנו תפריט חדש (יותר גיוון)',en:'Regenerate (more variety)'},
+  shoppingTitle:{he:'רשימת קניות משלימה',en:'Complementary Shopping List'},
+  shoppingSub:{he:'המוצרים האלה חסרים לך כדי להשלים את כל המתכונים בתפריט השבועי.',en:'These items are missing to complete all the recipes in your weekly menu.'},
+  shoppingEmpty:{he:'בנו תפריט שבועי כדי לראות רשימת השלמה.',en:'Build a weekly menu to see the completion list.'},
+  shoppingCountSuffix:{he:n=>`נדרש ל-${n} מתכונים`,en:n=>`needed for ${n} recipe${n>1?'s':''}`},
+  ingredientsLabel:{he:'רכיבים',en:'Ingredients'},
+  instructionsLabel:{he:'אופן ההכנה',en:'Instructions'},
+  ownedTag:{he:'יש לך',en:'You have it'},
+  missingTag:{he:'חסר',en:'Missing'},
+  badgeMissing:{he:n=>`חסרים ${n}`,en:n=>`${n} missing`},
+  badgeReady:{he:'הכל יש',en:'All set'},
+  footer:{he:'נשמר אוטומטית בדפדפן הזה • הנתונים חיים גם ב-Git לגיבוי ולשיתוף בין מחשבים',en:'Auto-saved in this browser • Data also lives in Git for backup and syncing across computers'},
+  mealLabels:{breakfast:{he:'בוקר',en:'Breakfast'},lunch:{he:'צהריים',en:'Lunch'},dinner:{he:'ערב',en:'Dinner'},snack:{he:'נשנוש',en:'Snack'}}
+};
+
+/* ============ STATE ============ */
+const STORAGE_KEY = 'nutriplan_v1';
+let db = loadData();
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return {lang:'he', products:[], plan:null};
+}
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
+
+/* ============ i18n HELPERS ============ */
+function t(key){
+  const entry = STRINGS[key];
+  if(!entry) return key;
+  const v = entry[db.lang];
+  return v;
+}
+function tf(obj){ return obj[db.lang]; }
+
+function applyStaticStrings(){
+  document.documentElement.lang = db.lang;
+  document.documentElement.dir = db.lang==='he' ? 'rtl' : 'ltr';
+  document.getElementById('t-appTitle').textContent = t('appTitle');
+  document.getElementById('t-tagline').textContent = t('tagline');
+  document.getElementById('t-navProducts').textContent = t('navProducts');
+  document.getElementById('t-navPlan').textContent = t('navPlan');
+  document.getElementById('t-navShopping').textContent = t('navShopping');
+  document.getElementById('langToggle').textContent = t('langBtn');
+  document.getElementById('t-productsTitle').textContent = t('productsTitle');
+  document.getElementById('t-productsSub').textContent = t('productsSub');
+  document.getElementById('t-catLabel').textContent = t('catLabel');
+  document.getElementById('t-productLabel').textContent = t('productLabel');
+  document.getElementById('t-freeTextLabel').textContent = t('freeTextLabel');
+  document.getElementById('freeTextInput').placeholder = t('freeTextPlaceholder');
+  document.getElementById('addFreeTextBtn').textContent = t('quickAddBtn');
+  document.getElementById('generateBtn').textContent = t('generateBtn');
+  document.getElementById('t-planTitle').textContent = t('planTitle');
+  document.getElementById('t-planSub').textContent = t('planSub');
+  document.getElementById('t-shoppingTitle').textContent = t('shoppingTitle');
+  document.getElementById('t-shoppingSub').textContent = t('shoppingSub');
+  document.getElementById('t-ingredientsLabel').textContent = t('ingredientsLabel');
+  document.getElementById('t-instructionsLabel').textContent = t('instructionsLabel');
+  document.getElementById('t-footer').textContent = t('footer');
+  document.getElementById('regenerateBtn').textContent = t('regenerateBtn');
+  populateCategorySelect();
+  renderProducts();
+  renderPlan();
+  renderShoppingList();
+}
+
+/* ============ PRODUCTS UI ============ */
+function populateCategorySelect(){
+  const sel = document.getElementById('catSelect');
+  sel.innerHTML = '';
+  Object.keys(CATEGORIES).filter(c=>c!=='other').forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = tf(CATEGORIES[c]);
+    sel.appendChild(opt);
+  });
+  refreshAutocomplete();
+}
+
+function refreshAutocomplete(){
+  const cat = document.getElementById('catSelect').value;
+  const input = document.getElementById('productInput');
+  input.dataset.cat = cat;
+}
+
+function matchProductByText(text){
+  const norm = text.trim().toLowerCase();
+  return PRODUCTS.find(p => p.he.toLowerCase()===norm || p.en.toLowerCase()===norm);
+}
+
+function addProduct(catalogId, customLabel, category){
+  const item = catalogId
+    ? {catalogId, category: PRODUCT_MAP[catalogId].cat, label: null}
+    : {catalogId: null, category: category || 'other', label: customLabel};
+  // avoid exact duplicates
+  const dup = db.products.some(p => catalogId ? p.catalogId===catalogId : (p.label && p.label.toLowerCase()===customLabel.toLowerCase()));
+  if(dup) return;
+  db.products.push(item);
+  saveData();
+  renderProducts();
+}
+
+function removeProduct(idx){
+  db.products.splice(idx,1);
+  saveData();
+  renderProducts();
+}
+
+function renderProducts(){
+  const list = document.getElementById('productList');
+  list.innerHTML = '';
+  db.products.forEach((p, idx)=>{
+    const li = document.createElement('li');
+    li.className = 'chip';
+    const label = p.catalogId ? tf(PRODUCT_MAP[p.catalogId]) : p.label;
+    li.innerHTML = `<span class="cat-dot"></span><span>${escapeHtml(label)}</span>`;
+    const rm = document.createElement('button');
+    rm.className = 'btn-danger-ghost';
+    rm.textContent = '×';
+    rm.onclick = ()=>removeProduct(idx);
+    li.appendChild(rm);
+    list.appendChild(li);
+  });
+  const hint = document.getElementById('emptyProductsHint');
+  hint.style.display = db.products.length ? 'none' : 'block';
+  hint.textContent = t('emptyProducts');
+  document.getElementById('productCountHint').textContent = db.products.length ? t('productCountHint')(db.products.length) : '';
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+document.getElementById('catSelect').addEventListener('change', refreshAutocomplete);
+
+document.getElementById('productInput').addEventListener('input', (e)=>{
+  delete e.target.dataset.selectedId;
+  const val = e.target.value.trim();
+  const acList = document.getElementById('acList');
+  if(!val){ acList.classList.remove('show'); acList.innerHTML=''; return; }
+  const cat = document.getElementById('catSelect').value;
+  const matches = PRODUCTS.filter(p => p.cat===cat && (p.he.includes(val) || p.en.toLowerCase().includes(val.toLowerCase()))).slice(0,8);
+  if(!matches.length){ acList.classList.remove('show'); acList.innerHTML=''; return; }
+  acList.innerHTML = matches.map(m=>`<div class="ac-item" data-id="${m.id}">${escapeHtml(tf(m))}</div>`).join('');
+  acList.classList.add('show');
+  acList.querySelectorAll('.ac-item').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      document.getElementById('productInput').value = tf(PRODUCT_MAP[el.dataset.id]);
+      document.getElementById('productInput').dataset.selectedId = el.dataset.id;
+      acList.classList.remove('show');
+    });
+  });
+});
+document.addEventListener('click',(e)=>{
+  if(!e.target.closest('.autocomplete-wrap')) document.getElementById('acList').classList.remove('show');
+});
+
+document.getElementById('addProductBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('productInput');
+  const cat = document.getElementById('catSelect').value;
+  const typed = input.value.trim();
+  if(!typed) return;
+  const selectedId = input.dataset.selectedId;
+  const catalogMatch = selectedId && PRODUCT_MAP[selectedId] ? PRODUCT_MAP[selectedId] : matchProductByText(typed);
+  if(catalogMatch){
+    addProduct(catalogMatch.id, null, catalogMatch.cat);
+  } else {
+    addProduct(null, typed, cat);
+  }
+  input.value = '';
+  delete input.dataset.selectedId;
+});
+
+document.getElementById('addFreeTextBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('freeTextInput');
+  const parts = input.value.split(',').map(s=>s.trim()).filter(Boolean);
+  parts.forEach(txt=>{
+    const m = matchProductByText(txt);
+    if(m) addProduct(m.id, null, m.cat);
+    else addProduct(null, txt, 'other');
+  });
+  input.value = '';
+});
+document.getElementById('freeTextInput').addEventListener('keydown', (e)=>{
+  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('addFreeTextBtn').click(); }
+});
+document.getElementById('productInput').addEventListener('keydown', (e)=>{
+  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('addProductBtn').click(); }
+});
+
+/* ============ TABS ============ */
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+    document.getElementById('sec-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+function switchTab(name){
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('main section').forEach(s=>s.classList.toggle('active', s.id==='sec-'+name));
+}
+
+/* ============ LANGUAGE ============ */
+document.getElementById('langToggle').addEventListener('click', ()=>{
+  db.lang = db.lang==='he' ? 'en' : 'he';
+  saveData();
+  applyStaticStrings();
+});
+
+/* ============ MENU ENGINE ============ */
+function ownedIdSet(){
+  return new Set(db.products.filter(p=>p.catalogId).map(p=>p.catalogId));
+}
+
+function generatePlan(){
+  const owned = ownedIdSet();
+  const plan = [];
+  const usageCount = {}; // recipeId -> times used this week
+  const lastUsedDay = {}; // recipeId -> last day index used
+
+  for(let day=0; day<7; day++){
+    const dayPlan = {};
+    MEAL_TYPES.forEach(mealType=>{
+      const candidates = RECIPES.filter(r=>r.mealType===mealType);
+      let best = null, bestScore = -Infinity;
+      candidates.forEach(r=>{
+        const total = r.ingredients.length;
+        const ownedCount = r.ingredients.filter(ing=>owned.has(ing.id)).length;
+        const coverage = total ? ownedCount/total : 0;
+        const usedBefore = usageCount[r.id] || 0;
+        const gapSinceUsed = lastUsedDay[r.id]===undefined ? 99 : (day - lastUsedDay[r.id]);
+        let recentPenalty = 0;
+        if(usedBefore>0){
+          recentPenalty = gapSinceUsed < 2 ? 0.6 : (gapSinceUsed < 4 ? 0.3 : 0.1);
+          recentPenalty += usedBefore * 0.15;
+        }
+        const jitter = Math.random()*0.05;
+        const score = coverage - recentPenalty + jitter;
+        if(score > bestScore){ bestScore = score; best = r; }
+      });
+      const missing = best.ingredients.filter(ing=>!owned.has(ing.id)).map(ing=>ing.id);
+      dayPlan[mealType] = {recipeId: best.id, missing};
+      usageCount[best.id] = (usageCount[best.id]||0) + 1;
+      lastUsedDay[best.id] = day;
+    });
+    plan.push(dayPlan);
+  }
+  db.plan = plan;
+  saveData();
+  renderPlan();
+  renderShoppingList();
+  switchTab('plan');
+}
+
+document.getElementById('generateBtn').addEventListener('click', generatePlan);
+document.getElementById('regenerateBtn').addEventListener('click', generatePlan);
+
+function renderPlan(){
+  const grid = document.getElementById('weekGrid');
+  const emptyHint = document.getElementById('planEmptyHint');
+  const regenRow = document.getElementById('regenerateRow');
+  if(!db.plan){
+    grid.innerHTML = '';
+    emptyHint.style.display = 'block';
+    emptyHint.textContent = t('planEmpty');
+    regenRow.style.display = 'none';
+    return;
+  }
+  emptyHint.style.display = 'none';
+  regenRow.style.display = 'flex';
+  grid.innerHTML = '';
+  db.plan.forEach((dayPlan, dayIdx)=>{
+    const col = document.createElement('div');
+    col.className = 'day-col';
+    const head = document.createElement('div');
+    head.className = 'day-head';
+    head.textContent = DAY_NAMES[db.lang][dayIdx];
+    col.appendChild(head);
+    MEAL_TYPES.forEach(mealType=>{
+      const entry = dayPlan[mealType];
+      const recipe = RECIPES.find(r=>r.id===entry.recipeId);
+      const slot = document.createElement('div');
+      slot.className = 'meal-slot';
+      const missingCount = entry.missing.length;
+      slot.innerHTML = `
+        <div class="meal-label">${tf(STRINGS.mealLabels[mealType])}</div>
+        <div class="meal-name">${escapeHtml(tf(recipe.name))}</div>
+        <div class="meal-meta">
+          <span class="badge badge-time">${recipe.prepMin} ${db.lang==='he'?"דק'":'min'}</span>
+          ${missingCount>0 ? `<span class="badge badge-missing">${t('badgeMissing')(missingCount)}</span>` : `<span class="badge badge-ready">${t('badgeReady')}</span>`}
+        </div>`;
+      slot.addEventListener('click', ()=>openRecipeModal(recipe, entry.missing));
+      col.appendChild(slot);
+    });
+    grid.appendChild(col);
+  });
+}
+
+/* ============ SHOPPING LIST ============ */
+function renderShoppingList(){
+  const listEl = document.getElementById('shoppingList');
+  const emptyHint = document.getElementById('shoppingEmptyHint');
+  listEl.innerHTML = '';
+  if(!db.plan){
+    emptyHint.style.display = 'block';
+    emptyHint.textContent = t('shoppingEmpty');
+    return;
+  }
+  const counts = {};
+  db.plan.forEach(dayPlan=>{
+    MEAL_TYPES.forEach(mealType=>{
+      dayPlan[mealType].missing.forEach(id=>{
+        counts[id] = (counts[id]||0) + 1;
+      });
+    });
+  });
+  const ids = Object.keys(counts);
+  if(!ids.length){
+    emptyHint.style.display = 'block';
+    emptyHint.textContent = db.lang==='he' ? 'יש לך את כל מה שצריך! 🎉' : "You have everything you need! 🎉";
+    return;
+  }
+  emptyHint.style.display = 'none';
+  ids.sort((a,b)=> counts[b]-counts[a]);
+  ids.forEach(id=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${escapeHtml(tf(PRODUCT_MAP[id]))}</span><b>${t('shoppingCountSuffix')(counts[id])}</b>`;
+    listEl.appendChild(li);
+  });
+}
+
+/* ============ RECIPE MODAL ============ */
+function openRecipeModal(recipe, missingIds){
+  document.getElementById('modalTitle').textContent = tf(recipe.name);
+  document.getElementById('modalNutrition').textContent = tf(recipe.nutrition);
+  const missingSet = new Set(missingIds);
+  const ingList = document.getElementById('modalIngredients');
+  ingList.innerHTML = recipe.ingredients.map(ing=>{
+    const missing = missingSet.has(ing.id);
+    const p = PRODUCT_MAP[ing.id];
+    return `<li class="${missing?'missing':'owned'}"><span>${escapeHtml(tf(p))} — ${escapeHtml(tf(ing.qty))}</span><span class="tag">${missing?t('missingTag'):t('ownedTag')}</span></li>`;
+  }).join('');
+  const steps = document.getElementById('modalSteps');
+  steps.innerHTML = tf(recipe.instructions).map(s=>`<li>${escapeHtml(s)}</li>`).join('');
+  document.getElementById('recipeModal').classList.add('show');
+}
+document.getElementById('modalClose').addEventListener('click', ()=>{
+  document.getElementById('recipeModal').classList.remove('show');
+});
+document.getElementById('recipeModal').addEventListener('click', (e)=>{
+  if(e.target.id==='recipeModal') e.currentTarget.classList.remove('show');
+});
+
+/* ============ INIT ============ */
+applyStaticStrings();
+</script>
+</body>
+</html>
