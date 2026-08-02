@@ -940,6 +940,9 @@ function isIngredientCovered(ingId, ownedCatalog, ownedCustomCats){
   const cat = PRODUCT_MAP[ingId].cat;
   return cat!=='other' && ownedCustomCats.has(cat);
 }
+function missingForRecipe(recipe, ownedCatalog, ownedCustomCats){
+  return recipe.ingredients.filter(ing=>!isIngredientCovered(ing.id, ownedCatalog, ownedCustomCats)).map(ing=>ing.id);
+}
 
 function findOrCreateCustomProduct(label){
   const norm = label.trim().toLowerCase();
@@ -965,6 +968,8 @@ function addProduct(catalogId, customLabel){
   renderProducts();
   renderCatalogAccordion();
   renderWeekSelect();
+  renderPlan();
+  renderShoppingList();
 }
 
 function removeProduct(idx){
@@ -973,6 +978,8 @@ function removeProduct(idx){
   renderProducts();
   renderCatalogAccordion();
   renderWeekSelect();
+  renderPlan();
+  renderShoppingList();
 }
 
 function toggleCatalogProduct(catalogId, checked){
@@ -988,6 +995,8 @@ function toggleCatalogProduct(catalogId, checked){
   renderProducts();
   renderCatalogAccordion();
   renderWeekSelect();
+  renderPlan();
+  renderShoppingList();
 }
 
 function toggleCustomProduct(customId, checked){
@@ -1001,6 +1010,8 @@ function toggleCustomProduct(customId, checked){
   renderProducts();
   renderCatalogAccordion();
   renderWeekSelect();
+  renderPlan();
+  renderShoppingList();
 }
 
 /* ---- Edit/delete custom product popup ---- */
@@ -1041,6 +1052,8 @@ document.getElementById('saveCustomBtn').addEventListener('click', ()=>{
   saveData();
   renderCatalogAccordion();
   renderProducts();
+  renderPlan();
+  renderShoppingList();
   closeEditCustomModal();
 });
 document.getElementById('deleteCustomBtn').addEventListener('click', ()=>{
@@ -1053,6 +1066,8 @@ document.getElementById('deleteCustomBtn').addEventListener('click', ()=>{
   renderCatalogAccordion();
   renderProducts();
   renderWeekSelect();
+  renderPlan();
+  renderShoppingList();
   closeEditCustomModal();
 });
 
@@ -1209,8 +1224,7 @@ function generatePlan(){
         const score = coverage - recentPenalty + jitter;
         if(score > bestScore){ bestScore = score; best = r; }
       });
-      const missing = best.ingredients.filter(ing=>!covered(ing.id)).map(ing=>ing.id);
-      dayPlan[mealType] = {recipeId: best.id, missing};
+      dayPlan[mealType] = {recipeId: best.id};
       usageCount[best.id] = (usageCount[best.id]||0) + 1;
       lastUsedDay[best.id] = day;
     });
@@ -1241,6 +1255,8 @@ function renderPlan(){
   emptyHint.style.display = 'none';
   regenRow.style.display = 'flex';
   grid.innerHTML = '';
+  const ownedCatalog = ownedCatalogIdSet();
+  const ownedCustomCats = ownedCustomCategorySet();
   plan.forEach((dayPlan, dayIdx)=>{
     const col = document.createElement('div');
     col.className = 'day-col';
@@ -1251,9 +1267,10 @@ function renderPlan(){
     MEAL_TYPES.forEach(mealType=>{
       const entry = dayPlan[mealType];
       const recipe = RECIPES.find(r=>r.id===entry.recipeId);
+      const missing = missingForRecipe(recipe, ownedCatalog, ownedCustomCats);
       const slot = document.createElement('div');
       slot.className = 'meal-slot';
-      const missingCount = entry.missing.length;
+      const missingCount = missing.length;
       slot.innerHTML = `
         <div class="meal-label">${tf(STRINGS.mealLabels[mealType])}</div>
         <div class="meal-name">${escapeHtml(tf(recipe.name))}</div>
@@ -1261,7 +1278,7 @@ function renderPlan(){
           <span class="badge badge-time">${recipe.prepMin} ${db.lang==='he'?"דק'":'min'}</span>
           ${missingCount>0 ? `<span class="badge badge-missing">${t('badgeMissing')(missingCount)}</span>` : `<span class="badge badge-ready">${t('badgeReady')}</span>`}
         </div>`;
-      slot.addEventListener('click', ()=>openRecipeModal(recipe, entry.missing));
+      slot.addEventListener('click', ()=>openRecipeModal(recipe, missing));
       col.appendChild(slot);
     });
     grid.appendChild(col);
@@ -1279,10 +1296,13 @@ function renderShoppingList(){
     emptyHint.textContent = t('shoppingEmpty');
     return;
   }
+  const ownedCatalog = ownedCatalogIdSet();
+  const ownedCustomCats = ownedCustomCategorySet();
   const counts = {};
   plan.forEach(dayPlan=>{
     MEAL_TYPES.forEach(mealType=>{
-      dayPlan[mealType].missing.forEach(id=>{
+      const recipe = RECIPES.find(r=>r.id===dayPlan[mealType].recipeId);
+      missingForRecipe(recipe, ownedCatalog, ownedCustomCats).forEach(id=>{
         counts[id] = (counts[id]||0) + 1;
       });
     });

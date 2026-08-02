@@ -33,7 +33,7 @@ For each of 7 days × 4 meal slots, scores every candidate recipe of that meal t
 - a recency penalty so the same recipe isn't picked on consecutive/nearby days (variety)
 - small random jitter so "Regenerate" produces a different plan
 
-Missing ingredients per recipe are collected across the week into the shopping list (`renderShoppingList()`), counted by how many recipes need each item.
+Missing ingredients are **not** stored in the plan — `dayPlan[mealType]` only holds `{recipeId}`. `missingForRecipe(recipe, ownedCatalog, ownedCustomCats)` recomputes coverage live every time the Plan/Shopping List tabs render, so checking off a product updates missing-badges and the shopping list immediately without needing to regenerate (which would also reshuffle which recipes got picked). Every product-mutating function (`addProduct`, `removeProduct`, `toggleCatalogProduct`, `toggleCustomProduct`, and the edit-custom save/delete handlers) calls `renderPlan()`/`renderShoppingList()` after `saveData()` so this stays live even if generation happened earlier.
 
 Nutrition values are pre-authored approximate ranges per recipe (not computed from ingredients) — this is intentional per product spec (general balance guidance, not exact macro tracking).
 
