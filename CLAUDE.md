@@ -14,10 +14,12 @@ Hebrew/English bilingual web app that turns a list of purchased groceries into a
 
 **Hosting**: static site pushed to a public GitHub repo, served via GitHub Pages so it's reachable via URL from any computer. The files also live locally under OneDrive (`PersonalCode/Food/`).
 
+**Cloud data sync**: same pattern as the wedding-planning app — a private GitHub Gist, not git commits. The user pastes a personal GitHub token (`gist` scope only) into the ☁️ Sync modal; `saveData()` debounces (3s) into `saveToGist()`, which PATCHes/POSTs the whole `db` object as `nutriplan-data.json` to a private Gist. `loadFromGist()` pulls it back down on another computer. Token + Gist ID live in `localStorage` under `nutriplan_sync_v1`, separate from the app data itself (`nutriplan_v1`).
+
 ## Data Model
 
 - `CATEGORIES` — food-group taxonomy (protein, dairy, grain, legume, veg, fruit, fat, sweet, other)
-- `PRODUCTS` — catalog of ~48 common grocery items, each `{id, he, en, cat}`. The products screen renders these as a collapsible-by-category checklist (`renderCatalogAccordion()`) — checking an item toggles it in the current week's product list.
+- `PRODUCTS` — catalog of ~48 common grocery items, each `{id, he, en, cat}`. The products screen renders these as a collapsible-by-category checklist (`renderCatalogAccordion()`) — checking an item toggles it in the current week's product list. Free-text items that don't match the catalog land in category `'other'` ("Uncategorized"), shown in their own accordion section with a `<select>` to (re)assign a real category — reassigning moves the row into that category's section on next render.
 - `RECIPES` — ~30 recipes, each `{id, mealType, prepMin, name:{he,en}, ingredients:[{id, qty:{he,en}}], instructions:{he:[...],en:[...]}, nutrition:{he,en}}`. Ingredients reference `PRODUCTS` ids for matching.
 - Each week: `{id, label, createdAt, products: [{catalogId|null, category, label|null}], plan: [{breakfast:{recipeId,missing[]}, lunch:..., dinner:..., snack:...} × 7] | null}`
 

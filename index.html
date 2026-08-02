@@ -65,6 +65,11 @@
   .acc-item{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:6px 8px;border-radius:8px;cursor:pointer}
   .acc-item:hover{background:var(--primary-light)}
   .acc-item input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer}
+  .acc-custom{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:13.5px;padding:6px 8px;border-radius:8px;background:#fbfcfb;flex-wrap:wrap}
+  .acc-custom .acc-custom-label{flex:1;min-width:80px;font-style:italic;color:var(--muted)}
+  .acc-custom select{width:auto;padding:4px 8px;font-size:12.5px;border:1px solid var(--border);border-radius:6px;background:#fff}
+  .sync-widget{display:flex;flex-direction:column;align-items:center;gap:3px}
+  #sync-status{font-size:10.5px;color:var(--muted);min-height:12px}
   .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-top:18px}
   @media (max-width:980px){.week-grid{grid-template-columns:repeat(2,1fr)}}
   @media (max-width:560px){.week-grid{grid-template-columns:1fr}}
@@ -115,6 +120,10 @@
       <button data-tab="plan" id="t-navPlan">התפריט השבועי</button>
       <button data-tab="shopping" id="t-navShopping">רשימת השלמה</button>
     </nav>
+    <div class="sync-widget">
+      <button class="lang-toggle" id="syncBtn">☁️ <span id="t-syncBtnLabel">סנכרון</span></button>
+      <div id="sync-status"></div>
+    </div>
     <button class="lang-toggle" id="langToggle">English</button>
   </div>
 </header>
@@ -188,6 +197,23 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="syncModal">
+  <div class="modal">
+    <button class="modal-close" id="syncModalClose">&times;</button>
+    <h3 id="t-syncTitle">☁️ סנכרון ענן – GitHub Gist</h3>
+    <p class="section-sub" id="t-syncHint" style="line-height:1.7"></p>
+    <label id="t-syncTokenLabel">GitHub Token</label>
+    <input type="password" id="syncTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+    <div style="height:12px"></div>
+    <label id="t-syncGistLabel">Gist ID</label>
+    <input type="text" id="syncGistIdInput" placeholder="...">
+    <div class="actions-row">
+      <button class="btn btn-outline" id="loadFromGistBtn">⬇️ <span id="t-loadFromCloudBtn">טען מהענן</span></button>
+      <button class="btn btn-primary" id="saveSyncConfigBtn">💾 <span id="t-saveAndSyncBtn">שמור וסנכרן</span></button>
+    </div>
+  </div>
+</div>
+
 <footer id="t-footer">נשמר אוטומטית בדפדפן הזה • הנתונים חיים גם ב-Git לגיבוי ולשיתוף בין מחשבים</footer>
 
 <script>
@@ -201,7 +227,7 @@ const CATEGORIES = {
   fruit:{he:'פירות',en:'Fruit'},
   fat:{he:'שומן בריא',en:'Healthy Fat'},
   sweet:{he:'ממתיק',en:'Sweetener'},
-  other:{he:'אחר',en:'Other'}
+  other:{he:'ללא קטגוריה',en:'Uncategorized'}
 };
 
 const PRODUCTS = [
@@ -424,10 +450,21 @@ const STRINGS = {
   navShopping:{he:'רשימת השלמה',en:'Shopping List'},
   langBtn:{he:'English',en:'עברית'},
   productsTitle:{he:'מה קנית השבוע?',en:'What did you buy this week?'},
-  productsSub:{he:'עברי על הקטגוריות וסמני מה כבר יש לך השבוע. מוצר שלא ברשימה? הוסיפי אותו למטה בטקסט חופשי.',en:"Go through the categories and check off what you already have this week. Something not on the list? Add it below as free text."},
+  productsSub:{he:'עברי על הקטגוריות וסמני מה כבר יש לך השבוע. מוצר שלא ברשימה? הוסיפי אותו למטה בטקסט חופשי — הוא יופיע תחת "ללא קטגוריה" ומשם אפשר לשייך אותו לקטגוריה המתאימה.',en:'Go through the categories and check off what you already have this week. Something not on the list? Add it below as free text — it will appear under "Uncategorized", where you can assign it a category.'},
   weekLabel:{he:'שבוע',en:'Week'},
   newWeekBtn:{he:'+ שבוע חדש',en:'+ New Week'},
   weekOptionSuffix:{he:n=>`(${n} מוצרים)`,en:n=>`(${n} product${n===1?'':'s'})`},
+  syncBtnLabel:{he:'סנכרון',en:'Sync'},
+  syncTitle:{he:'☁️ סנכרון ענן – GitHub Gist',en:'☁️ Cloud Sync – GitHub Gist'},
+  syncHint:{he:'כל הנתונים (המוצרים והתפריטים לכל השבועות) נשמרים כקובץ JSON פרטי ב-GitHub Gist שלך, כדי שיהיו זמינים מכל מחשב.<br><strong>כדי להתחיל:</strong> צרי <a href="https://github.com/settings/tokens/new?scopes=gist&description=Nutrition+Planner+Sync" target="_blank" rel="noopener">Personal Access Token</a> עם הרשאת <strong>gist</strong> בלבד, הדביקי אותו למטה ולחצי "שמור וסנכרן".',
+            en:'All your data (products and menus for every week) is saved as a private JSON file in your own GitHub Gist, so it\'s available from any computer.<br><strong>To get started:</strong> create a <a href="https://github.com/settings/tokens/new?scopes=gist&description=Nutrition+Planner+Sync" target="_blank" rel="noopener">Personal Access Token</a> with <strong>gist</strong> scope only, paste it below, and click "Save & Sync".'},
+  syncTokenLabel:{he:'GitHub Token (ghp_... או github_pat_...)',en:'GitHub Token (ghp_... or github_pat_...)'},
+  syncGistLabel:{he:'Gist ID (נוצר אוטומטית בסנכרון ראשון)',en:'Gist ID (created automatically on first sync)'},
+  loadFromCloudBtn:{he:'טען מהענן',en:'Load from Cloud'},
+  saveAndSyncBtn:{he:'שמור וסנכרן',en:'Save & Sync'},
+  syncMissingToken:{he:'נא להזין GitHub Token',en:'Please enter a GitHub Token'},
+  syncMissingBoth:{he:'נא להזין Token ו-Gist ID',en:'Please enter both a Token and a Gist ID'},
+  syncLoadSuccess:{he:'נתונים נטענו מהענן בהצלחה',en:'Data loaded from the cloud successfully'},
   freeTextLabel:{he:'הוספה מהירה (טקסט חופשי, מופרד בפסיקים)',en:'Quick add (free text, comma-separated)'},
   freeTextPlaceholder:{he:'לדוגמה: אבוקדו, לחם שיפון, זעתר',en:'e.g. avocado, rye bread, za\'atar'},
   quickAddBtn:{he:'הוסיפי',en:'Add'},
@@ -471,21 +508,118 @@ function currentWeek(){
 
 let db = loadData();
 
+function normalizeDb(parsed){
+  if(parsed.weeks && parsed.weeks.length) return parsed;
+  // migrate pre-weeks schema: {lang, products, plan}
+  const week = makeWeek(parsed.products||[], parsed.plan||null);
+  return {lang: parsed.lang||'he', weeks:[week], currentWeekId: week.id};
+}
 function loadData(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){
-      const parsed = JSON.parse(raw);
-      if(parsed.weeks && parsed.weeks.length) return parsed;
-      // migrate pre-weeks schema: {lang, products, plan}
-      const week = makeWeek(parsed.products||[], parsed.plan||null);
-      return {lang: parsed.lang||'he', weeks:[week], currentWeekId: week.id};
-    }
+    if(raw) return normalizeDb(JSON.parse(raw));
   }catch(e){}
   const week = makeWeek();
   return {lang:'he', weeks:[week], currentWeekId: week.id};
 }
-function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); scheduleSyncSave(); }
+
+/* ============ CLOUD SYNC (GitHub Gist) ============ */
+const SYNC_KEY = 'nutriplan_sync_v1';
+let syncConfig = {};
+try { syncConfig = JSON.parse(localStorage.getItem(SYNC_KEY)||'{}'); } catch(e){}
+let syncTimer = null;
+
+function scheduleSyncSave(){
+  if(!syncConfig.token) return;
+  clearTimeout(syncTimer);
+  updateSyncStatus('pending');
+  syncTimer = setTimeout(saveToGist, 3000);
+}
+async function saveToGist(){
+  if(!syncConfig.token) return;
+  updateSyncStatus('saving');
+  const body = {description:'Weekly Nutrition Planner data', public:false,
+    files:{'nutriplan-data.json':{content:JSON.stringify(db,null,2)}}};
+  try{
+    const url = syncConfig.gistId ? 'https://api.github.com/gists/'+syncConfig.gistId : 'https://api.github.com/gists';
+    const method = syncConfig.gistId ? 'PATCH' : 'POST';
+    const res = await fetch(url,{method,headers:{'Authorization':'token '+syncConfig.token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    syncConfig.gistId = data.id;
+    syncConfig.lastSync = new Date().toISOString();
+    localStorage.setItem(SYNC_KEY, JSON.stringify(syncConfig));
+    document.getElementById('syncGistIdInput').value = syncConfig.gistId;
+    updateSyncStatus('synced');
+  }catch(e){
+    updateSyncStatus('error');
+    console.error('Gist sync error:', e);
+  }
+}
+async function loadFromGist(){
+  const token = document.getElementById('syncTokenInput').value.trim() || syncConfig.token;
+  const gistId = document.getElementById('syncGistIdInput').value.trim() || syncConfig.gistId;
+  if(!token || !gistId){ alert(t('syncMissingBoth')); return; }
+  updateSyncStatus('loading');
+  try{
+    const res = await fetch('https://api.github.com/gists/'+gistId, {headers:{'Authorization':'token '+token}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const gist = await res.json();
+    const content = gist.files['nutriplan-data.json'] && gist.files['nutriplan-data.json'].content;
+    if(!content) throw new Error('nutriplan-data.json not found in Gist');
+    db = normalizeDb(JSON.parse(content));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    syncConfig.token = token;
+    syncConfig.gistId = gistId;
+    syncConfig.lastSync = new Date().toISOString();
+    localStorage.setItem(SYNC_KEY, JSON.stringify(syncConfig));
+    applyStaticStrings();
+    updateSyncStatus('synced');
+    alert(t('syncLoadSuccess'));
+    closeSyncModal();
+  }catch(e){
+    updateSyncStatus('error');
+    alert((db.lang==='he'?'שגיאה בטעינה: ':'Load error: ')+e.message);
+  }
+}
+function updateSyncStatus(state){
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  const isHe = db.lang==='he';
+  const map = {
+    synced:{icon:'☁️',text:syncConfig.lastSync?new Date(syncConfig.lastSync).toLocaleTimeString(isHe?'he-IL':'en-US',{hour:'2-digit',minute:'2-digit'}):'✔️',color:'var(--primary-dark)'},
+    saving:{icon:'⏳',text:isHe?'שומר...':'Saving...',color:'var(--accent)'},
+    pending:{icon:'·',text:isHe?'ממתין...':'Pending...',color:'var(--muted)'},
+    loading:{icon:'⏳',text:isHe?'טוען...':'Loading...',color:'var(--accent)'},
+    error:{icon:'⚠️',text:isHe?'שגיאה':'Error',color:'#c14f3a'}
+  };
+  const s = map[state]||map.synced;
+  el.innerHTML = `<span style="color:${s.color}">${s.icon} ${s.text}</span>`;
+}
+function openSyncModal(){
+  document.getElementById('syncTokenInput').value = syncConfig.token||'';
+  document.getElementById('syncGistIdInput').value = syncConfig.gistId||'';
+  document.getElementById('syncModal').classList.add('show');
+}
+function closeSyncModal(){
+  document.getElementById('syncModal').classList.remove('show');
+}
+function saveSyncConfig(){
+  const token = document.getElementById('syncTokenInput').value.trim();
+  const gistId = document.getElementById('syncGistIdInput').value.trim();
+  if(!token){ alert(t('syncMissingToken')); return; }
+  syncConfig.token = token;
+  if(gistId) syncConfig.gistId = gistId;
+  localStorage.setItem(SYNC_KEY, JSON.stringify(syncConfig));
+  closeSyncModal();
+  saveToGist();
+}
+document.getElementById('syncBtn').addEventListener('click', openSyncModal);
+document.getElementById('syncModalClose').addEventListener('click', closeSyncModal);
+document.getElementById('syncModal').addEventListener('click', (e)=>{ if(e.target.id==='syncModal') closeSyncModal(); });
+document.getElementById('loadFromGistBtn').addEventListener('click', loadFromGist);
+document.getElementById('saveSyncConfigBtn').addEventListener('click', saveSyncConfig);
 
 /* ============ i18n HELPERS ============ */
 function t(key){
@@ -521,6 +655,13 @@ function applyStaticStrings(){
   document.getElementById('t-instructionsLabel').textContent = t('instructionsLabel');
   document.getElementById('t-footer').textContent = t('footer');
   document.getElementById('regenerateBtn').textContent = t('regenerateBtn');
+  document.getElementById('t-syncBtnLabel').textContent = t('syncBtnLabel');
+  document.getElementById('t-syncTitle').textContent = t('syncTitle');
+  document.getElementById('t-syncHint').innerHTML = t('syncHint');
+  document.getElementById('t-syncTokenLabel').textContent = t('syncTokenLabel');
+  document.getElementById('t-syncGistLabel').textContent = t('syncGistLabel');
+  document.getElementById('t-loadFromCloudBtn').textContent = t('loadFromCloudBtn');
+  document.getElementById('t-saveAndSyncBtn').textContent = t('saveAndSyncBtn');
   renderWeekSelect();
   renderProducts();
   renderCatalogAccordion();
@@ -612,18 +753,25 @@ function toggleCatalogProduct(catalogId, checked){
 const accordionOpenState = {};
 function renderCatalogAccordion(){
   const container = document.getElementById('catalogAccordion');
+  const week = currentWeek();
   const owned = ownedCatalogIdSet();
   container.innerHTML = '';
-  Object.keys(CATEGORIES).filter(c=>c!=='other').forEach(catKey=>{
-    const items = PRODUCTS.filter(p=>p.cat===catKey);
+  const catKeys = [...Object.keys(CATEGORIES).filter(c=>c!=='other'), 'other'];
+  catKeys.forEach(catKey=>{
+    const isOther = catKey==='other';
+    const items = isOther ? [] : PRODUCTS.filter(p=>p.cat===catKey);
     const ownedCount = items.filter(p=>owned.has(p.id)).length;
+    const customEntries = week.products
+      .map((p, idx)=>({p, idx}))
+      .filter(({p})=>p.catalogId===null && (p.category||'other')===catKey);
     const isOpen = !!accordionOpenState[catKey];
+    const countLabel = isOther ? `${customEntries.length}` : `${ownedCount}/${items.length}`;
     const section = document.createElement('div');
     section.className = 'acc-section';
     section.innerHTML = `
       <button type="button" class="acc-header" data-cat="${catKey}">
         <span class="acc-name">${escapeHtml(tf(CATEGORIES[catKey]))}</span>
-        <span class="acc-count">${ownedCount}/${items.length}</span>
+        <span class="acc-count">${countLabel}</span>
         <span class="acc-arrow">${isOpen?'▾':'▸'}</span>
       </button>
       <div class="acc-body" style="display:${isOpen?'grid':'none'}">
@@ -632,6 +780,14 @@ function renderCatalogAccordion(){
             <input type="checkbox" data-id="${p.id}" ${owned.has(p.id)?'checked':''}>
             <span>${escapeHtml(tf(p))}</span>
           </label>`).join('')}
+        ${customEntries.map(({p, idx})=>`
+          <div class="acc-custom">
+            <span class="acc-custom-label">${escapeHtml(p.label)}</span>
+            <select data-reassign-idx="${idx}">
+              ${Object.keys(CATEGORIES).map(ck=>`<option value="${ck}" ${(p.category||'other')===ck?'selected':''}>${escapeHtml(tf(CATEGORIES[ck]))}</option>`).join('')}
+            </select>
+            <button type="button" class="btn-danger-ghost" data-remove-idx="${idx}">×</button>
+          </div>`).join('')}
       </div>`;
     container.appendChild(section);
   });
@@ -644,6 +800,17 @@ function renderCatalogAccordion(){
   });
   container.querySelectorAll('.acc-item input[type=checkbox]').forEach(cb=>{
     cb.addEventListener('change', ()=>toggleCatalogProduct(cb.dataset.id, cb.checked));
+  });
+  container.querySelectorAll('[data-reassign-idx]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const idx = Number(sel.dataset.reassignIdx);
+      currentWeek().products[idx].category = sel.value;
+      saveData();
+      renderCatalogAccordion();
+    });
+  });
+  container.querySelectorAll('[data-remove-idx]').forEach(btn=>{
+    btn.addEventListener('click', ()=>removeProduct(Number(btn.dataset.removeIdx)));
   });
 }
 
@@ -855,6 +1022,7 @@ document.getElementById('recipeModal').addEventListener('click', (e)=>{
 
 /* ============ INIT ============ */
 applyStaticStrings();
+if(syncConfig.lastSync) updateSyncStatus('synced');
 </script>
 </body>
 </html>
