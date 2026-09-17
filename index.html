@@ -36,7 +36,7 @@
   .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media (max-width:720px){.grid-2{grid-template-columns:1fr}}
   label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--muted)}
-  select,input[type=text],input[type=search]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-family:inherit;font-size:14px;background:#fbfcfb}
+  select,input[type=text],input[type=search],input[type=number],input[type=date]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-family:inherit;font-size:14px;background:#fbfcfb}
   select:focus,input:focus{outline:2px solid var(--primary-light);border-color:var(--primary)}
   .row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
   .row > div{flex:1;min-width:160px}
@@ -107,6 +107,19 @@
   @media (max-width:600px){.shopping-list{grid-template-columns:1fr}}
   .shopping-list li{display:flex;justify-content:space-between;background:var(--accent-light);color:#8a4526;padding:9px 12px;border-radius:9px;font-size:13.5px;font-weight:600}
   .shopping-list li b{color:#c14f3a}
+  .blood-test-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:14px}
+  .blood-test-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+  .blood-test-date{font-weight:800;font-size:14.5px}
+  .blood-test-actions{display:flex;gap:4px;flex:0 0 auto}
+  .blood-metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px}
+  .blood-metric-chip{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:8px;background:#fafbfa;font-size:13.5px}
+  .blood-metric-chip.out{background:var(--accent-light);color:#8a4526}
+  .blood-metric-chip .m-name{font-weight:600}
+  .blood-metric-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+  .blood-metric-row select{flex:2;min-width:150px}
+  .blood-metric-row input[type=text],.blood-metric-row input[type=number]{flex:1;min-width:80px}
+  .blood-metric-row .removeMetricRowBtn{flex:0 0 auto;background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;padding:4px 8px;border-radius:6px}
+  .blood-metric-row .removeMetricRowBtn:hover{color:#c14f3a;background:var(--accent-light)}
   footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 </style>
 </head>
@@ -124,6 +137,7 @@
       <button data-tab="products" class="active" id="t-navProducts">המוצרים שלי</button>
       <button data-tab="plan" id="t-navPlan">התפריט השבועי</button>
       <button data-tab="shopping" id="t-navShopping">רשימת השלמה</button>
+      <button data-tab="blood" id="t-navBlood">מדדי דם</button>
     </nav>
     <div class="profile-widget">
       <span style="font-size:14px">👤</span>
@@ -192,6 +206,20 @@
       <ul class="shopping-list" id="shoppingList"></ul>
     </div>
   </section>
+
+  <section id="sec-blood">
+    <div class="card">
+      <div class="actions-row" style="margin-top:0">
+        <div>
+          <h2 class="section-title" id="t-bloodTitle">מדדי הדם שלך</h2>
+          <p class="section-sub" style="margin:0" id="t-bloodSub">תעדי תוצאות בדיקות דם לאורך זמן ועקבי אחרי מגמות.</p>
+        </div>
+        <button class="btn btn-primary" id="addBloodTestBtn"></button>
+      </div>
+      <div id="bloodEmptyHint" class="empty-hint"></div>
+      <div id="bloodTestList"></div>
+    </div>
+  </section>
 </main>
 
 <div class="modal-overlay" id="recipeModal">
@@ -251,6 +279,25 @@
       <div style="display:flex;gap:8px">
         <button class="btn btn-outline" id="cancelCustomBtn"><span id="t-cancelBtn">ביטול</span></button>
         <button class="btn btn-primary" id="saveCustomBtn"><span id="t-saveCustomBtn">שמרי</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bloodModal">
+  <div class="modal">
+    <button class="modal-close" id="bloodModalClose">&times;</button>
+    <h3 id="t-bloodModalTitle"></h3>
+    <label id="t-bloodDateLabel"></label>
+    <input type="date" id="bloodDateInput">
+    <div style="height:14px"></div>
+    <div id="bloodMetricRows"></div>
+    <button type="button" class="btn btn-outline" id="addMetricRowBtn" style="margin-top:4px"></button>
+    <div class="actions-row">
+      <button class="btn-danger-ghost" id="deleteBloodBtn" style="display:none"></button>
+      <div style="display:flex;gap:8px;margin-inline-start:auto">
+        <button class="btn btn-outline" id="cancelBloodBtn"></button>
+        <button class="btn btn-primary" id="saveBloodBtn"></button>
       </div>
     </div>
   </div>
@@ -484,12 +531,31 @@ const RECIPES = [
 const MEAL_TYPES = ['breakfast','lunch','dinner','snack'];
 const DAY_NAMES = {he:['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'],en:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']};
 
+const BLOOD_METRICS = [
+  {id:'glucose',he:'גלוקוז בצום',en:'Fasting Glucose',unit:'mg/dL',low:70,high:99},
+  {id:'hba1c',he:'המוגלובין מסוכרר (HbA1c)',en:'HbA1c',unit:'%',low:4,high:5.6},
+  {id:'total_cholesterol',he:'כולסטרול כללי',en:'Total Cholesterol',unit:'mg/dL',low:0,high:200},
+  {id:'ldl',he:'LDL',en:'LDL',unit:'mg/dL',low:0,high:100},
+  {id:'hdl',he:'HDL',en:'HDL',unit:'mg/dL',low:40,high:999},
+  {id:'triglycerides',he:'טריגליצרידים',en:'Triglycerides',unit:'mg/dL',low:0,high:150},
+  {id:'hemoglobin',he:'המוגלובין',en:'Hemoglobin',unit:'g/dL',low:12,high:16},
+  {id:'ferritin',he:'פריטין',en:'Ferritin',unit:'ng/mL',low:15,high:150},
+  {id:'iron',he:'ברזל',en:'Iron',unit:'µg/dL',low:60,high:170},
+  {id:'vitamin_d',he:'ויטמין D',en:'Vitamin D',unit:'ng/mL',low:30,high:100},
+  {id:'vitamin_b12',he:'ויטמין B12',en:'Vitamin B12',unit:'pg/mL',low:200,high:900},
+  {id:'tsh',he:'TSH',en:'TSH',unit:'mIU/L',low:0.4,high:4.0},
+  {id:'creatinine',he:'קריאטינין',en:'Creatinine',unit:'mg/dL',low:0.6,high:1.2},
+  {id:'calcium',he:'סידן',en:'Calcium',unit:'mg/dL',low:8.5,high:10.5}
+];
+const BLOOD_METRIC_MAP = Object.fromEntries(BLOOD_METRICS.map(m=>[m.id,m]));
+
 const STRINGS = {
   appTitle:{he:'תפריט שבועי מאוזן',en:'Balanced Weekly Menu'},
   tagline:{he:'מהמוצרים שקנית לתפריט שבועי מלא',en:'From what you bought to a full weekly menu'},
   navProducts:{he:'המוצרים שלי',en:'My Products'},
   navPlan:{he:'התפריט השבועי',en:'Weekly Plan'},
   navShopping:{he:'רשימת השלמה',en:'Shopping List'},
+  navBlood:{he:'מדדי דם',en:'Blood Metrics'},
   langBtn:{he:'English',en:'עברית'},
   productsTitle:{he:'מה קנית השבוע?',en:'What did you buy this week?'},
   productsSub:{he:'עברי על הקטגוריות וסמני מה כבר יש לך השבוע. מוצר שלא ברשימה? הוסיפי אותו למטה בטקסט חופשי — הוא יופיע תחת "ללא קטגוריה" ומשם אפשר לשייך אותו לקטגוריה המתאימה.',en:'Go through the categories and check off what you already have this week. Something not on the list? Add it below as free text — it will appear under "Uncategorized", where you can assign it a category.'},
@@ -544,7 +610,25 @@ const STRINGS = {
   badgeMissing:{he:n=>`חסרים ${n}`,en:n=>`${n} missing`},
   badgeReady:{he:'הכל יש',en:'All set'},
   footer:{he:'נשמר אוטומטית בדפדפן הזה • הנתונים חיים גם ב-Git לגיבוי ולשיתוף בין מחשבים',en:'Auto-saved in this browser • Data also lives in Git for backup and syncing across computers'},
-  mealLabels:{breakfast:{he:'בוקר',en:'Breakfast'},lunch:{he:'צהריים',en:'Lunch'},dinner:{he:'ערב',en:'Dinner'},snack:{he:'נשנוש',en:'Snack'}}
+  mealLabels:{breakfast:{he:'בוקר',en:'Breakfast'},lunch:{he:'צהריים',en:'Lunch'},dinner:{he:'ערב',en:'Dinner'},snack:{he:'נשנוש',en:'Snack'}},
+  bloodTitle:{he:'מדדי הדם שלך',en:'Your Blood Metrics'},
+  bloodSub:{he:'תעדי תוצאות בדיקות דם לאורך זמן ועקבי אחרי מגמות.',en:'Log blood test results over time and track trends.'},
+  addTestBtn:{he:'+ הוספת בדיקה',en:'+ Add Test'},
+  bloodEmpty:{he:'עוד לא הוספת בדיקות דם. הוסיפי בדיקה כדי להתחיל לעקוב.',en:'No blood tests added yet. Add one to start tracking.'},
+  bloodModalTitleAdd:{he:'הוספת בדיקת דם',en:'Add Blood Test'},
+  bloodModalTitleEdit:{he:'עריכת בדיקת דם',en:'Edit Blood Test'},
+  bloodDateLabel:{he:'תאריך הבדיקה',en:'Test Date'},
+  bloodOtherOption:{he:'אחר (הזן שם)…',en:'Other (enter name)…'},
+  bloodCustomNamePlaceholder:{he:'שם המדד',en:'Metric name'},
+  bloodValuePlaceholder:{he:'ערך',en:'Value'},
+  bloodUnitPlaceholder:{he:'יחידות',en:'Unit'},
+  addMetricRowBtn:{he:'+ הוספת מדד',en:'+ Add Metric'},
+  saveBloodBtn:{he:'שמרי בדיקה',en:'Save Test'},
+  cancelBloodBtn:{he:'ביטול',en:'Cancel'},
+  deleteBloodBtn:{he:'🗑 מחקי בדיקה',en:'🗑 Delete Test'},
+  deleteBloodConfirm:{he:'למחוק את הבדיקה הזו לצמיתות?',en:'Delete this test permanently?'},
+  outRangeTag:{he:'מחוץ לטווח',en:'Out of range'},
+  editTestTitleAttr:{he:'ערכי בדיקה זו',en:'Edit this test'}
 };
 
 /* ============ PROFILES (multi-person storage) ============ */
@@ -578,7 +662,7 @@ function currentWeek(){
 }
 function emptyProfileData(lang){
   const week = makeWeek();
-  return {lang: lang||'he', weeks:[week], currentWeekId: week.id, customProducts:[]};
+  return {lang: lang||'he', weeks:[week], currentWeekId: week.id, customProducts:[], bloodTests:[]};
 }
 
 function makeCustomId(){
@@ -615,6 +699,7 @@ function normalizeDb(parsed){
     const week = makeWeek(parsed.products||[], parsed.plan||null);
     result = {lang: parsed.lang||'he', weeks:[week], currentWeekId: week.id};
   }
+  if(!result.bloodTests) result.bloodTests = [];
   return migrateInlineCustomItems(result);
 }
 function loadData(){
@@ -840,6 +925,7 @@ function applyStaticStrings(){
   document.getElementById('t-navProducts').textContent = t('navProducts');
   document.getElementById('t-navPlan').textContent = t('navPlan');
   document.getElementById('t-navShopping').textContent = t('navShopping');
+  document.getElementById('t-navBlood').textContent = t('navBlood');
   document.getElementById('langToggle').textContent = t('langBtn');
   document.getElementById('t-productsTitle').textContent = t('productsTitle');
   document.getElementById('t-productsSub').textContent = t('productsSub');
@@ -876,12 +962,21 @@ function applyStaticStrings(){
   document.getElementById('t-profileCancelBtn').textContent = t('profileCancelBtn');
   document.getElementById('t-profileCreateBtn').textContent = t('profileCreateBtn');
   document.getElementById('t-profileModalHint').textContent = profileModalHasLegacy ? t('profileModalHintLegacy') : t('profileModalHint');
+  document.getElementById('t-bloodTitle').textContent = t('bloodTitle');
+  document.getElementById('t-bloodSub').textContent = t('bloodSub');
+  document.getElementById('addBloodTestBtn').textContent = t('addTestBtn');
+  document.getElementById('t-bloodDateLabel').textContent = t('bloodDateLabel');
+  document.getElementById('addMetricRowBtn').textContent = t('addMetricRowBtn');
+  document.getElementById('cancelBloodBtn').textContent = t('cancelBloodBtn');
+  document.getElementById('saveBloodBtn').textContent = t('saveBloodBtn');
+  document.getElementById('deleteBloodBtn').textContent = t('deleteBloodBtn');
   renderProfileSelect();
   renderWeekSelect();
   renderProducts();
   renderCatalogAccordion();
   renderPlan();
   renderShoppingList();
+  renderBloodTests();
 }
 
 /* ============ WEEKS UI ============ */
@@ -1342,6 +1437,168 @@ document.getElementById('modalClose').addEventListener('click', ()=>{
 });
 document.getElementById('recipeModal').addEventListener('click', (e)=>{
   if(e.target.id==='recipeModal') e.currentTarget.classList.remove('show');
+});
+
+/* ============ BLOOD METRICS ============ */
+function formatDateStr(s){
+  const [y,m,d] = s.split('-');
+  return `${d}/${m}/${y}`;
+}
+function sortedBloodTests(){
+  return [...db.bloodTests].sort((a,b)=> b.date.localeCompare(a.date));
+}
+function renderBloodTests(){
+  const listEl = document.getElementById('bloodTestList');
+  const emptyHint = document.getElementById('bloodEmptyHint');
+  const tests = sortedBloodTests();
+  listEl.innerHTML = '';
+  if(!tests.length){
+    emptyHint.style.display = 'block';
+    emptyHint.textContent = t('bloodEmpty');
+    return;
+  }
+  emptyHint.style.display = 'none';
+  tests.forEach(test=>{
+    const card = document.createElement('div');
+    card.className = 'blood-test-card';
+    const metricsHtml = test.metrics.map(m=>{
+      const def = m.key ? BLOOD_METRIC_MAP[m.key] : null;
+      const label = def ? tf(def) : m.name;
+      const out = def && (m.value < def.low || m.value > def.high);
+      return `<div class="blood-metric-chip${out?' out':''}"><span class="m-name">${escapeHtml(label)}</span><span>${escapeHtml(String(m.value))}${m.unit?' '+escapeHtml(m.unit):''}</span></div>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="blood-test-head">
+        <span class="blood-test-date">${escapeHtml(formatDateStr(test.date))}</span>
+        <div class="blood-test-actions">
+          <button class="acc-edit-btn edit-blood-btn" data-blood-id="${test.id}" title="${escapeHtml(t('editTestTitleAttr'))}">✎</button>
+        </div>
+      </div>
+      <div class="blood-metric-grid">${metricsHtml}</div>
+    `;
+    listEl.appendChild(card);
+  });
+  listEl.querySelectorAll('.edit-blood-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>openBloodModal(btn.dataset.bloodId));
+  });
+}
+
+let editingBloodId = null;
+function populateBloodMetricSelect(sel, selectedKey){
+  sel.innerHTML = '';
+  BLOOD_METRICS.forEach(m=>{
+    const opt = document.createElement('option');
+    opt.value = m.id; opt.textContent = tf(m);
+    sel.appendChild(opt);
+  });
+  const otherOpt = document.createElement('option');
+  otherOpt.value = ''; otherOpt.textContent = t('bloodOtherOption');
+  sel.appendChild(otherOpt);
+  sel.value = selectedKey || '';
+}
+function addMetricRow(data){
+  data = data || {};
+  const row = document.createElement('div');
+  row.className = 'blood-metric-row';
+  const sel = document.createElement('select');
+  sel.className = 'bloodMetricSelect';
+  const customInput = document.createElement('input');
+  customInput.type = 'text';
+  customInput.className = 'bloodCustomNameInput';
+  customInput.placeholder = t('bloodCustomNamePlaceholder');
+  const valueInput = document.createElement('input');
+  valueInput.type = 'number';
+  valueInput.step = 'any';
+  valueInput.className = 'bloodValueInput';
+  valueInput.placeholder = t('bloodValuePlaceholder');
+  const unitInput = document.createElement('input');
+  unitInput.type = 'text';
+  unitInput.className = 'bloodUnitInput';
+  unitInput.placeholder = t('bloodUnitPlaceholder');
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'removeMetricRowBtn';
+  removeBtn.textContent = '✕';
+
+  populateBloodMetricSelect(sel, data.key);
+  const isCustom = !data.key;
+  customInput.style.display = isCustom ? '' : 'none';
+  customInput.value = isCustom ? (data.name||'') : '';
+  valueInput.value = data.value!==undefined ? data.value : '';
+  unitInput.value = data.unit!==undefined ? data.unit : (data.key ? BLOOD_METRIC_MAP[data.key].unit : '');
+
+  sel.addEventListener('change', ()=>{
+    if(sel.value){
+      customInput.style.display = 'none';
+      unitInput.value = BLOOD_METRIC_MAP[sel.value].unit;
+    } else {
+      customInput.style.display = '';
+      customInput.focus();
+    }
+  });
+  removeBtn.addEventListener('click', ()=> row.remove());
+
+  row.appendChild(sel);
+  row.appendChild(customInput);
+  row.appendChild(valueInput);
+  row.appendChild(unitInput);
+  row.appendChild(removeBtn);
+  document.getElementById('bloodMetricRows').appendChild(row);
+}
+function openBloodModal(id){
+  editingBloodId = id || null;
+  const test = id ? db.bloodTests.find(bt=>bt.id===id) : null;
+  document.getElementById('t-bloodModalTitle').textContent = test ? t('bloodModalTitleEdit') : t('bloodModalTitleAdd');
+  document.getElementById('bloodDateInput').value = test ? test.date : new Date().toISOString().slice(0,10);
+  document.getElementById('bloodMetricRows').innerHTML = '';
+  if(test && test.metrics.length){
+    test.metrics.forEach(m=>addMetricRow(m));
+  } else {
+    addMetricRow();
+  }
+  document.getElementById('deleteBloodBtn').style.display = test ? '' : 'none';
+  document.getElementById('bloodModal').classList.add('show');
+}
+function closeBloodModal(){
+  document.getElementById('bloodModal').classList.remove('show');
+  editingBloodId = null;
+}
+document.getElementById('addBloodTestBtn').addEventListener('click', ()=>openBloodModal(null));
+document.getElementById('addMetricRowBtn').addEventListener('click', ()=>addMetricRow());
+document.getElementById('bloodModalClose').addEventListener('click', closeBloodModal);
+document.getElementById('cancelBloodBtn').addEventListener('click', closeBloodModal);
+document.getElementById('bloodModal').addEventListener('click', (e)=>{ if(e.target.id==='bloodModal') closeBloodModal(); });
+document.getElementById('saveBloodBtn').addEventListener('click', ()=>{
+  const date = document.getElementById('bloodDateInput').value;
+  if(!date) return;
+  const metrics = [];
+  document.querySelectorAll('#bloodMetricRows .blood-metric-row').forEach(row=>{
+    const key = row.querySelector('.bloodMetricSelect').value || null;
+    const name = row.querySelector('.bloodCustomNameInput').value.trim();
+    const valueRaw = row.querySelector('.bloodValueInput').value;
+    const unit = row.querySelector('.bloodUnitInput').value.trim();
+    if(valueRaw==='' || (!key && !name)) return;
+    metrics.push({id:makeCustomId(), key, name: key?null:name, value:parseFloat(valueRaw), unit});
+  });
+  if(!metrics.length) return;
+  if(editingBloodId){
+    const test = db.bloodTests.find(bt=>bt.id===editingBloodId);
+    test.date = date;
+    test.metrics = metrics;
+  } else {
+    db.bloodTests.push({id:makeCustomId(), date, metrics});
+  }
+  saveData();
+  renderBloodTests();
+  closeBloodModal();
+});
+document.getElementById('deleteBloodBtn').addEventListener('click', ()=>{
+  if(!editingBloodId) return;
+  if(!confirm(t('deleteBloodConfirm'))) return;
+  db.bloodTests = db.bloodTests.filter(bt=>bt.id!==editingBloodId);
+  saveData();
+  renderBloodTests();
+  closeBloodModal();
 });
 
 /* ============ INIT ============ */
